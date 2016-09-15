@@ -1,8 +1,9 @@
 import { h } from 'virtual-dom';
+import View from './view';
 
-class PlayerView extends Backbone.View {
+class PlayerView extends View {
   get template() {
-    return h('li', [
+    return h('li.player', [
       h('span', this.model.get('name')),
       h('div.remove', { onclick: this.onRemove.bind(this) }, 'remove'),
     ]);
@@ -10,10 +11,6 @@ class PlayerView extends Backbone.View {
 
   onRemove() {
     this.model.destroy();
-  }
-
-  render() {
-    return this.template;
   }
 }
 

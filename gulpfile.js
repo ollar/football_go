@@ -5,6 +5,27 @@ var webpack = require("webpack");
 var WebpackDevServer = require("webpack-dev-server");
 var webpackConfig = require("./webpack.config.js");
 
+var plumber = require('gulp-plumber');
+var rename = require('gulp-rename');
+var sourcemaps = require('gulp-sourcemaps');
+var sass = require('gulp-sass');
+var autoPrefixer = require('gulp-autoprefixer');
+
+gulp.task('sass',function(){
+    gulp.src(['src/styles/main.scss'])
+        .pipe(plumber({
+            handleError: function (err) {
+                console.log(err);
+                this.emit('end');
+            }
+        }))
+        .pipe(sourcemaps.init())
+        .pipe(sass())
+        .pipe(autoPrefixer())
+        .pipe(sourcemaps.write())
+        .pipe(gulp.dest('public'))
+});
+
 // The development server (the recommended option for development)
 gulp.task("default", ["webpack-dev-server"]);
 
@@ -14,6 +35,7 @@ gulp.task("default", ["webpack-dev-server"]);
 //               can serve an old app on refresh
 gulp.task("build-dev", ["webpack:build-dev"], function() {
   gulp.watch(["src/**/*"], ["webpack:build-dev"]);
+  gulp.watch(["src/**/*.scss"], ["sass"]);
 });
 
 // Production build

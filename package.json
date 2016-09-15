@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "./node_modules/.bin/gulp build-dev"
   },
   "author": "",
   "license": "ISC",
@@ -27,6 +28,11 @@
     "eslint-plugin-react": "^6.2.1",
     "exports-loader": "^0.6.3",
     "gulp": "^3.9.1",
+    "gulp-autoprefixer": "^3.1.1",
+    "gulp-plumber": "^1.1.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-sass": "^2.3.2",
+    "gulp-sourcemaps": "^1.6.0",
     "gulp-util": "^3.0.7",
     "imports-loader": "^0.6.5",
     "webpack": "^1.13.2",
