@@ -16,7 +16,8 @@ module.exports = {
       Promise: 'imports?this=>global!exports?global.Promise!es6-promise',
       fetch: 'imports?this=>global!exports?global.fetch!whatwg-fetch',
     }),
-    // new webpack.IgnorePlugin(/^jquery$/),
+    new webpack.IgnorePlugin(/^jquery$/),
+    new webpack.ContextReplacementPlugin(/moment[\\\/]locale$/, /^\.\/(en|ru)$/)
   ],
   module: {
     loaders: [
@@ -28,7 +29,11 @@ module.exports = {
           presets: ['es2015']
         }
       },
-      // { test: /backbone\.js$/, loader: 'imports?define=>false' },
-    ]
+      { test: /backbone\.js$/, loader: 'imports?define=>false' },
+    ],
+    resolve: {
+      // require("jquery") is external and available
+      //  on the global var jQuery
+    }
   }
 }
