@@ -1,5 +1,6 @@
 /* eslint-disable */
 var webpack = require('webpack');
+var path = require('path');
 
 module.exports = {
   entry: "./src/index.js",
@@ -8,11 +9,10 @@ module.exports = {
     publicPath: '/public/',
     filename: "bundle.js"
   },
-  watch: true,
   plugins: [
     new webpack.ProvidePlugin({
-      '_':          'underscore',
-      'Backbone':   'backbone',
+      '_': 'underscore',
+      Backbone: 'exports?Backbone.default!' + __dirname + '/src/backboneConfig',
       Promise: 'imports?this=>global!exports?global.Promise!es6-promise',
       fetch: 'imports?this=>global!exports?global.fetch!whatwg-fetch',
     }),
@@ -32,8 +32,10 @@ module.exports = {
       { test: /backbone\.js$/, loader: 'imports?define=>false' },
     ],
     resolve: {
-      // require("jquery") is external and available
-      //  on the global var jQuery
+      // root: path.resolve(__dirname),
+      // alias: {
+      //   backboneConf: 'src/backboneConfig',
+      // }
     }
   }
 }

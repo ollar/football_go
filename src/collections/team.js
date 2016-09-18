@@ -29,6 +29,7 @@ class TeamCollection extends Backbone.Collection {
   }
 
   parse(data) {
+    console.log(data);
     return Object.keys(data).map(key => Object.assign({}, { name: key }, data[key]));
   }
 }

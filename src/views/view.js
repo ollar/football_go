@@ -1,7 +1,4 @@
 import { h, create, diff, patch } from 'virtual-dom';
-import Backbone from 'backbone';
-
-console.log(Backbone);
 
 class View extends Backbone.View {
   get template() {
