@@ -22,6 +22,7 @@ class View extends Backbone.View {
   }
 
   render() {
+    console.log('render', this);
     if (this.rootNode) {
       return this.update();
     }

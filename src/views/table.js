@@ -1,4 +1,4 @@
-import { h } from 'virtual-dom';
+import { h, diff, patch } from 'virtual-dom';
 
 import View from './view';
 
@@ -7,8 +7,6 @@ import PlayerView from './player';
 
 import { serializeObject } from '../utils';
 import i18n from '../translate';
-
-import App from './app';
 
 class PlayersTable extends View {
   get template() {
@@ -21,7 +19,11 @@ class PlayersTable extends View {
           h('span', { onclick: this.initMatch.bind(this) }, '+')
         )),
       ]),
-      h('ol.players-list', this.collection.map(model => new PlayerView({ model }).render())),
+      // h('ol.players-list', this.collection.map(model => new PlayerView({ model }).render())),
+      h('ol.players-list', this.collection.map(() => {
+        console.log('aaa');
+        return h('li', 'test');
+      })),
       (localStorage.getItem('aggreeToGo') ? null : (
         h('form', { onsubmit: this.addPlayer.bind(this) }, [
           h('input', {
@@ -46,11 +48,14 @@ class PlayersTable extends View {
   initialize() {
     this.collection = new TeamCollection();
     this.collection.fetch();
-    this.listenTo(this.collection, 'update', () => {
-      console.log(App);
-      // App.render();
-      this.render();
-    });
+    this.listenTo(this.collection, 'update', this.render);
+  }
+
+  update() {
+    const tree = this.template;
+    const patches = diff(this.tree, tree);
+    patch(this.rootNode, patches);
+    this.tree = tree;
   }
 
   addPlayer(e) {

@@ -1,5 +1,4 @@
 import firebase from 'firebase';
-
 import View from './view';
 import PlayersTable from '../views/table';
 
@@ -41,4 +40,4 @@ class App extends View {
   }
 }
 
-export default new App();
+export default App;

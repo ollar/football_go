@@ -1,5 +1,5 @@
 import App from './views/app';
 
-const app = App.setElement('#app');
+const app = new App({ el: '#app' });
 
 app.render();
