@@ -8,6 +8,8 @@ import PlayerView from './player';
 import { serializeObject } from '../utils';
 import i18n from '../translate';
 
+import App from './app';
+
 class PlayersTable extends View {
   get template() {
     return h('div.play-team', [
@@ -44,12 +46,11 @@ class PlayersTable extends View {
   initialize() {
     this.collection = new TeamCollection();
     this.collection.fetch();
-    this.listenTo(this.collection, 'update', this.render);
-  }
-
-  initMatch() {
-    this.collection.initGame();
-    this.render();
+    this.listenTo(this.collection, 'update', () => {
+      console.log(App);
+      // App.render();
+      this.render();
+    });
   }
 
   addPlayer(e) {

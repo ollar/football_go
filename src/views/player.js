@@ -5,6 +5,7 @@ import i18n from '../translate';
 
 class PlayerView extends View {
   get template() {
+    console.log('memem');
     return (
       h('li.player', { key: this.model.get('name') }, [
         h('span', this.model.get('playersName')),

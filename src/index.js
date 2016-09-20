@@ -1,5 +1,5 @@
-import PlayersTable from './views/table';
+import App from './views/app';
 
-const playersTable = new PlayersTable({ el: '#app' });
+const app = App.setElement('#app');
 
-playersTable.render();
+app.render();
