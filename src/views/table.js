@@ -1,5 +1,4 @@
 import { h } from 'virtual-dom';
-import moment from 'moment';
 
 import View from './view';
 
@@ -15,7 +14,7 @@ class PlayersTable extends View {
       h('h1', [
         h('span', i18n.t('Football match process')),
         (this.collection.matchDate ? (
-          h('span', moment(new Date(this.collection.matchDate)).locale('ru').format('DD MMMM'))
+          h('span', this.collection.matchDate)
         ) : (
           h('span', { onclick: this.initMatch.bind(this) }, '+')
         )),
@@ -42,9 +41,14 @@ class PlayersTable extends View {
     ]);
   }
 
+  initialize() {
+    this.collection = new TeamCollection();
+    this.collection.fetch();
+    this.listenTo(this.collection, 'update', this.render);
+  }
+
   initMatch() {
     this.collection.initGame();
-    console.log(this.collection.url);
     this.render();
   }
 
@@ -56,13 +60,6 @@ class PlayersTable extends View {
     localStorage.setItem('aggreeToGo', true);
     e.target.reset();
     this.collection.create(data);
-  }
-
-  initialize() {
-    this.nextWed = moment().day(10).format('YYYY-MM-DD');
-    this.collection = new TeamCollection();
-    this.collection.fetch();
-    this.listenTo(this.collection, 'update', this.render);
   }
 }
 

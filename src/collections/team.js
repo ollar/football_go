@@ -1,4 +1,3 @@
-import moment from 'moment';
 import PlayerModel from '../models/player';
 
 class TeamCollection extends Backbone.Collection {
@@ -14,7 +13,7 @@ class TeamCollection extends Backbone.Collection {
   }
 
   get matchDate() {
-    return moment().day(10).format('YYYY-MM-DD');
+    return TeamCollection.formatDate(TeamCollection.nextWednesday);
   }
 
   initMatch() {
@@ -28,8 +27,25 @@ class TeamCollection extends Backbone.Collection {
     return PlayerModel;
   }
 
+  static get nextWednesday() {
+    const todayDay = new Date().getDay();
+    const today = new Date();
+
+    const dayDelta = () => {
+      if (todayDay < 4) return 3 - todayDay;
+      return 10 - todayDay;
+    };
+
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate() + dayDelta());
+  }
+
+  static formatDate(date) {
+    const dateArr = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
+
+    return `${dateArr[0]}-${dateArr[1]}-${dateArr[2]}`;
+  }
+
   parse(data) {
-    console.log(data);
     return Object.keys(data).map(key => Object.assign({}, { name: key }, data[key]));
   }
 }
