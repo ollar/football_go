@@ -1,8 +1,14 @@
 import { h, create, diff, patch } from 'virtual-dom';
 
+import App from './app';
+
 class View extends Backbone.View {
   get template() {
     return h('div');
+  }
+
+  initialize() {
+    console.log(App.userModel);
   }
 
   update() {

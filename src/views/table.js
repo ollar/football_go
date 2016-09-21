@@ -19,11 +19,7 @@ class PlayersTable extends View {
           h('span', { onclick: this.initMatch.bind(this) }, '+')
         )),
       ]),
-      // h('ol.players-list', this.collection.map(model => new PlayerView({ model }).render())),
-      h('ol.players-list', this.collection.map(() => {
-        console.log('aaa');
-        return h('li', 'test');
-      })),
+      h('ol.players-list', this.collection.map(model => new PlayerView({ model }).render())),
       (localStorage.getItem('aggreeToGo') ? null : (
         h('form', { onsubmit: this.addPlayer.bind(this) }, [
           h('input', {
@@ -45,7 +41,8 @@ class PlayersTable extends View {
     ]);
   }
 
-  initialize() {
+  initialize(options) {
+    this.app = options.app;
     this.collection = new TeamCollection();
     this.collection.fetch();
     this.listenTo(this.collection, 'update', this.render);
@@ -54,7 +51,8 @@ class PlayersTable extends View {
   update() {
     const tree = this.template;
     const patches = diff(this.tree, tree);
-    patch(this.rootNode, patches);
+    // patch(this.rootNode, patches);
+    patch(this.app.rootNode, patches);
     this.tree = tree;
   }
 

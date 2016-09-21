@@ -1,9 +1,17 @@
 import firebase from 'firebase';
-import View from './view';
-import PlayersTable from '../views/table';
 
-class App extends View {
-  initialize() {
+import { h, create } from 'virtual-dom';
+
+const App = (function App() {
+  const userModel = new Backbone.Model();
+
+  function attach(el) {
+    const tree = h('div');
+    const rootNode = create(tree);
+    el.appendChild(rootNode);
+  }
+
+  function initialize(el) {
     const config = {
       apiKey: 'AIzaSyAIbkLzp46HhDXBcMBmQiGXc6lbtWZ7l7s',
       authDomain: 'footballgo-fcfc3.firebaseapp.com',
@@ -12,32 +20,30 @@ class App extends View {
       messagingSenderId: '421380806800',
     };
 
-    this.user = new Backbone.Model();
-
     firebase.initializeApp(config);
-    this.playersTable = new PlayersTable({
-      userModel: this.user,
-    });
 
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
-        this.user.set({
+        userModel.set({
           isAnonymous: user.isAnonymous,
           uid: user.uid,
         });
       } else {
-        this.user.set({});
+        userModel.set({});
         firebase.auth().signInAnonymously().catch((error) => {
-          this.user.set({});
+          userModel.set({});
           console.log(`Sign in failure: ${error.code}: ${error.message}`);
         });
       }
     });
+
+    attach(el);
   }
 
-  get template() {
-    return this.playersTable.render();
-  }
-}
+  return {
+    initialize,
+    userModel,
+  };
+}());
 
 export default App;
