@@ -1,4 +1,4 @@
-import { h, create, diff, patch } from 'virtual-dom';
+import { h, diff, patch } from 'virtual-dom';
 
 import App from './app';
 
@@ -7,29 +7,22 @@ class View extends Backbone.View {
     return h('div');
   }
 
-  initialize() {
-    console.log(App.userModel);
-  }
-
   update() {
+    const rootNode = App.getRootNode();
     const tree = this.template;
     const patches = diff(this.tree, tree);
-    patch(this.rootNode, patches);
+    patch(rootNode, patches);
     this.tree = tree;
   }
 
   attach() {
     this.tree = this.template;
-    this.rootNode = create(this.tree);
-    if (this.el.parentNode) {
-      return this.el.appendChild(this.rootNode);
-    }
     return this.tree;
   }
 
   render() {
     console.log('render', this);
-    if (this.rootNode) {
+    if (this.tree) {
       return this.update();
     }
     return this.attach();

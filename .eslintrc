@@ -1,8 +1,10 @@
 {
+  "env": {
+    "browser": true,
+  },
   "globals": {
     Backbone: true,
     _: true,
-    localStorage: true,
   },
   "extends": "airbnb"
 }

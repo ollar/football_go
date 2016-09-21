@@ -1,9 +1,15 @@
 import { h } from 'virtual-dom';
 import View from './view';
 
+import PlayerModel from '../models/player';
 import i18n from '../translate';
 
 class PlayerView extends View {
+  constructor(options) {
+    super(options);
+
+    this.model = new PlayerModel();
+  }
   get template() {
     return (
       h('li.player', { key: this.model.get('name') }, [
@@ -11,6 +17,11 @@ class PlayerView extends View {
         h('div.remove', { onclick: this.onRemove.bind(this) }, i18n.t('wont go')),
       ])
     );
+  }
+
+  setModel(model) {
+    this.model.set(model.toJSON());
+    return this;
   }
 
   onRemove() {

@@ -50,11 +50,14 @@
 	
 	var _app2 = _interopRequireDefault(_app);
 	
+	var _table = __webpack_require__(49);
+	
+	var _table2 = _interopRequireDefault(_table);
+	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
-	var appEl = document.getElementById('app');
-	
-	_app2.default.initialize(appEl);
+	_app2.default.initialize();
+	_app2.default.attach(document.getElementById('app'), _table2.default);
 
 /***/ },
 /* 1 */
@@ -66,24 +69,25 @@
 	  value: true
 	});
 	
-	var _firebase = __webpack_require__(11);
+	var _firebase = __webpack_require__(9);
 	
 	var _firebase2 = _interopRequireDefault(_firebase);
 	
-	var _virtualDom = __webpack_require__(16);
+	var _virtualDom = __webpack_require__(14);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
 	var App = function App() {
 	  var userModel = new Backbone.Model();
+	  var rootNode = void 0;
 	
-	  function attach(el) {
-	    var tree = (0, _virtualDom.h)('div');
-	    var rootNode = (0, _virtualDom.create)(tree);
+	  function attach(el, View) {
+	    var tree = new View().render();
+	    rootNode = (0, _virtualDom.create)(tree);
 	    el.appendChild(rootNode);
 	  }
 	
-	  function initialize(el) {
+	  function initialize() {
 	    var config = {
 	      apiKey: 'AIzaSyAIbkLzp46HhDXBcMBmQiGXc6lbtWZ7l7s',
 	      authDomain: 'footballgo-fcfc3.firebaseapp.com',
@@ -96,6 +100,7 @@
 	
 	    _firebase2.default.auth().onAuthStateChanged(function (user) {
 	      if (user) {
+	        console.log(user);
 	        userModel.set({
 	          isAnonymous: user.isAnonymous,
 	          uid: user.uid
@@ -108,13 +113,18 @@
 	        });
 	      }
 	    });
-	
-	    attach(el);
 	  }
 	
 	  return {
 	    initialize: initialize,
-	    userModel: userModel
+	    userModel: userModel,
+	    attach: attach,
+	    getRootNode: function getRootNode() {
+	      return rootNode;
+	    },
+	    getUserModel: function getUserModel() {
+	      return userModel;
+	    }
 	  };
 	}();
 	
@@ -131,7 +141,7 @@
 	  value: true
 	});
 	
-	var _backbone = __webpack_require__(10);
+	var _backbone = __webpack_require__(8);
 	
 	var _backbone2 = _interopRequireDefault(_backbone);
 	
@@ -279,7 +289,7 @@
 
 	/*** EXPORTS FROM exports-loader ***/
 	module.exports = Backbone.default;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3), __webpack_require__(9), __webpack_require__(2)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(3), __webpack_require__(7), __webpack_require__(2)))
 
 /***/ },
 /* 3 */
@@ -732,974 +742,1168 @@
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var require;var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(process, global, module) {/*** IMPORTS FROM imports-loader ***/
+	var require;/* WEBPACK VAR INJECTION */(function(process, Promise, global) {/*** IMPORTS FROM imports-loader ***/
 	(function() {
 	
 	/*!
 	 * @overview es6-promise - a tiny implementation of Promises/A+.
 	 * @copyright Copyright (c) 2014 Yehuda Katz, Tom Dale, Stefan Penner and contributors (Conversion to ES6 API by Jake Archibald)
 	 * @license   Licensed under MIT license
-	 *            See https://raw.githubusercontent.com/jakearchibald/es6-promise/master/LICENSE
-	 * @version   3.2.1
+	 *            See https://raw.githubusercontent.com/stefanpenner/es6-promise/master/LICENSE
+	 * @version   3.3.1
 	 */
 	
-	(function() {
-	    "use strict";
-	    function lib$es6$promise$utils$$objectOrFunction(x) {
-	      return typeof x === 'function' || (typeof x === 'object' && x !== null);
-	    }
+	(function (global, factory) {
+	     true ? module.exports = factory() :
+	    typeof define === 'function' && define.amd ? define(factory) :
+	    (global.ES6Promise = factory());
+	}(this, (function () { 'use strict';
 	
-	    function lib$es6$promise$utils$$isFunction(x) {
-	      return typeof x === 'function';
-	    }
+	function objectOrFunction(x) {
+	  return typeof x === 'function' || typeof x === 'object' && x !== null;
+	}
 	
-	    function lib$es6$promise$utils$$isMaybeThenable(x) {
-	      return typeof x === 'object' && x !== null;
-	    }
+	function isFunction(x) {
+	  return typeof x === 'function';
+	}
 	
-	    var lib$es6$promise$utils$$_isArray;
-	    if (!Array.isArray) {
-	      lib$es6$promise$utils$$_isArray = function (x) {
-	        return Object.prototype.toString.call(x) === '[object Array]';
-	      };
+	var _isArray = undefined;
+	if (!Array.isArray) {
+	  _isArray = function (x) {
+	    return Object.prototype.toString.call(x) === '[object Array]';
+	  };
+	} else {
+	  _isArray = Array.isArray;
+	}
+	
+	var isArray = _isArray;
+	
+	var len = 0;
+	var vertxNext = undefined;
+	var customSchedulerFn = undefined;
+	
+	var asap = function asap(callback, arg) {
+	  queue[len] = callback;
+	  queue[len + 1] = arg;
+	  len += 2;
+	  if (len === 2) {
+	    // If len is 2, that means that we need to schedule an async flush.
+	    // If additional callbacks are queued before the queue is flushed, they
+	    // will be processed by this flush that we are scheduling.
+	    if (customSchedulerFn) {
+	      customSchedulerFn(flush);
 	    } else {
-	      lib$es6$promise$utils$$_isArray = Array.isArray;
+	      scheduleFlush();
 	    }
+	  }
+	};
+	
+	function setScheduler(scheduleFn) {
+	  customSchedulerFn = scheduleFn;
+	}
+	
+	function setAsap(asapFn) {
+	  asap = asapFn;
+	}
+	
+	var browserWindow = typeof window !== 'undefined' ? window : undefined;
+	var browserGlobal = browserWindow || {};
+	var BrowserMutationObserver = browserGlobal.MutationObserver || browserGlobal.WebKitMutationObserver;
+	var isNode = typeof self === 'undefined' && typeof process !== 'undefined' && ({}).toString.call(process) === '[object process]';
+	
+	// test for web worker but not in IE10
+	var isWorker = typeof Uint8ClampedArray !== 'undefined' && typeof importScripts !== 'undefined' && typeof MessageChannel !== 'undefined';
+	
+	// node
+	function useNextTick() {
+	  // node version 0.10.x displays a deprecation warning when nextTick is used recursively
+	  // see https://github.com/cujojs/when/issues/410 for details
+	  return function () {
+	    return process.nextTick(flush);
+	  };
+	}
+	
+	// vertx
+	function useVertxTimer() {
+	  return function () {
+	    vertxNext(flush);
+	  };
+	}
+	
+	function useMutationObserver() {
+	  var iterations = 0;
+	  var observer = new BrowserMutationObserver(flush);
+	  var node = document.createTextNode('');
+	  observer.observe(node, { characterData: true });
+	
+	  return function () {
+	    node.data = iterations = ++iterations % 2;
+	  };
+	}
+	
+	// web worker
+	function useMessageChannel() {
+	  var channel = new MessageChannel();
+	  channel.port1.onmessage = flush;
+	  return function () {
+	    return channel.port2.postMessage(0);
+	  };
+	}
+	
+	function useSetTimeout() {
+	  // Store setTimeout reference so es6-promise will be unaffected by
+	  // other code modifying setTimeout (like sinon.useFakeTimers())
+	  var globalSetTimeout = setTimeout;
+	  return function () {
+	    return globalSetTimeout(flush, 1);
+	  };
+	}
+	
+	var queue = new Array(1000);
+	function flush() {
+	  for (var i = 0; i < len; i += 2) {
+	    var callback = queue[i];
+	    var arg = queue[i + 1];
+	
+	    callback(arg);
+	
+	    queue[i] = undefined;
+	    queue[i + 1] = undefined;
+	  }
+	
+	  len = 0;
+	}
+	
+	function attemptVertx() {
+	  try {
+	    var r = require;
+	    var vertx = __webpack_require__(6);
+	    vertxNext = vertx.runOnLoop || vertx.runOnContext;
+	    return useVertxTimer();
+	  } catch (e) {
+	    return useSetTimeout();
+	  }
+	}
+	
+	var scheduleFlush = undefined;
+	// Decide what async method to use to triggering processing of queued callbacks:
+	if (isNode) {
+	  scheduleFlush = useNextTick();
+	} else if (BrowserMutationObserver) {
+	  scheduleFlush = useMutationObserver();
+	} else if (isWorker) {
+	  scheduleFlush = useMessageChannel();
+	} else if (browserWindow === undefined && "function" === 'function') {
+	  scheduleFlush = attemptVertx();
+	} else {
+	  scheduleFlush = useSetTimeout();
+	}
 	
-	    var lib$es6$promise$utils$$isArray = lib$es6$promise$utils$$_isArray;
-	    var lib$es6$promise$asap$$len = 0;
-	    var lib$es6$promise$asap$$vertxNext;
-	    var lib$es6$promise$asap$$customSchedulerFn;
-	
-	    var lib$es6$promise$asap$$asap = function asap(callback, arg) {
-	      lib$es6$promise$asap$$queue[lib$es6$promise$asap$$len] = callback;
-	      lib$es6$promise$asap$$queue[lib$es6$promise$asap$$len + 1] = arg;
-	      lib$es6$promise$asap$$len += 2;
-	      if (lib$es6$promise$asap$$len === 2) {
-	        // If len is 2, that means that we need to schedule an async flush.
-	        // If additional callbacks are queued before the queue is flushed, they
-	        // will be processed by this flush that we are scheduling.
-	        if (lib$es6$promise$asap$$customSchedulerFn) {
-	          lib$es6$promise$asap$$customSchedulerFn(lib$es6$promise$asap$$flush);
-	        } else {
-	          lib$es6$promise$asap$$scheduleFlush();
-	        }
-	      }
-	    }
-	
-	    function lib$es6$promise$asap$$setScheduler(scheduleFn) {
-	      lib$es6$promise$asap$$customSchedulerFn = scheduleFn;
-	    }
-	
-	    function lib$es6$promise$asap$$setAsap(asapFn) {
-	      lib$es6$promise$asap$$asap = asapFn;
-	    }
-	
-	    var lib$es6$promise$asap$$browserWindow = (typeof window !== 'undefined') ? window : undefined;
-	    var lib$es6$promise$asap$$browserGlobal = lib$es6$promise$asap$$browserWindow || {};
-	    var lib$es6$promise$asap$$BrowserMutationObserver = lib$es6$promise$asap$$browserGlobal.MutationObserver || lib$es6$promise$asap$$browserGlobal.WebKitMutationObserver;
-	    var lib$es6$promise$asap$$isNode = typeof self === 'undefined' && typeof process !== 'undefined' && {}.toString.call(process) === '[object process]';
-	
-	    // test for web worker but not in IE10
-	    var lib$es6$promise$asap$$isWorker = typeof Uint8ClampedArray !== 'undefined' &&
-	      typeof importScripts !== 'undefined' &&
-	      typeof MessageChannel !== 'undefined';
-	
-	    // node
-	    function lib$es6$promise$asap$$useNextTick() {
-	      // node version 0.10.x displays a deprecation warning when nextTick is used recursively
-	      // see https://github.com/cujojs/when/issues/410 for details
-	      return function() {
-	        process.nextTick(lib$es6$promise$asap$$flush);
-	      };
-	    }
-	
-	    // vertx
-	    function lib$es6$promise$asap$$useVertxTimer() {
-	      return function() {
-	        lib$es6$promise$asap$$vertxNext(lib$es6$promise$asap$$flush);
-	      };
-	    }
-	
-	    function lib$es6$promise$asap$$useMutationObserver() {
-	      var iterations = 0;
-	      var observer = new lib$es6$promise$asap$$BrowserMutationObserver(lib$es6$promise$asap$$flush);
-	      var node = document.createTextNode('');
-	      observer.observe(node, { characterData: true });
-	
-	      return function() {
-	        node.data = (iterations = ++iterations % 2);
-	      };
-	    }
-	
-	    // web worker
-	    function lib$es6$promise$asap$$useMessageChannel() {
-	      var channel = new MessageChannel();
-	      channel.port1.onmessage = lib$es6$promise$asap$$flush;
-	      return function () {
-	        channel.port2.postMessage(0);
-	      };
-	    }
-	
-	    function lib$es6$promise$asap$$useSetTimeout() {
-	      return function() {
-	        setTimeout(lib$es6$promise$asap$$flush, 1);
-	      };
-	    }
-	
-	    var lib$es6$promise$asap$$queue = new Array(1000);
-	    function lib$es6$promise$asap$$flush() {
-	      for (var i = 0; i < lib$es6$promise$asap$$len; i+=2) {
-	        var callback = lib$es6$promise$asap$$queue[i];
-	        var arg = lib$es6$promise$asap$$queue[i+1];
-	
-	        callback(arg);
-	
-	        lib$es6$promise$asap$$queue[i] = undefined;
-	        lib$es6$promise$asap$$queue[i+1] = undefined;
-	      }
-	
-	      lib$es6$promise$asap$$len = 0;
-	    }
-	
-	    function lib$es6$promise$asap$$attemptVertx() {
-	      try {
-	        var r = require;
-	        var vertx = __webpack_require__(7);
-	        lib$es6$promise$asap$$vertxNext = vertx.runOnLoop || vertx.runOnContext;
-	        return lib$es6$promise$asap$$useVertxTimer();
-	      } catch(e) {
-	        return lib$es6$promise$asap$$useSetTimeout();
-	      }
-	    }
-	
-	    var lib$es6$promise$asap$$scheduleFlush;
-	    // Decide what async method to use to triggering processing of queued callbacks:
-	    if (lib$es6$promise$asap$$isNode) {
-	      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$useNextTick();
-	    } else if (lib$es6$promise$asap$$BrowserMutationObserver) {
-	      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$useMutationObserver();
-	    } else if (lib$es6$promise$asap$$isWorker) {
-	      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$useMessageChannel();
-	    } else if (lib$es6$promise$asap$$browserWindow === undefined && "function" === 'function') {
-	      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$attemptVertx();
-	    } else {
-	      lib$es6$promise$asap$$scheduleFlush = lib$es6$promise$asap$$useSetTimeout();
-	    }
-	    function lib$es6$promise$then$$then(onFulfillment, onRejection) {
-	      var parent = this;
-	
-	      var child = new this.constructor(lib$es6$promise$$internal$$noop);
-	
-	      if (child[lib$es6$promise$$internal$$PROMISE_ID] === undefined) {
-	        lib$es6$promise$$internal$$makePromise(child);
-	      }
-	
-	      var state = parent._state;
-	
-	      if (state) {
-	        var callback = arguments[state - 1];
-	        lib$es6$promise$asap$$asap(function(){
-	          lib$es6$promise$$internal$$invokeCallback(state, child, callback, parent._result);
-	        });
-	      } else {
-	        lib$es6$promise$$internal$$subscribe(parent, child, onFulfillment, onRejection);
-	      }
-	
-	      return child;
-	    }
-	    var lib$es6$promise$then$$default = lib$es6$promise$then$$then;
-	    function lib$es6$promise$promise$resolve$$resolve(object) {
-	      /*jshint validthis:true */
-	      var Constructor = this;
-	
-	      if (object && typeof object === 'object' && object.constructor === Constructor) {
-	        return object;
-	      }
-	
-	      var promise = new Constructor(lib$es6$promise$$internal$$noop);
-	      lib$es6$promise$$internal$$resolve(promise, object);
-	      return promise;
-	    }
-	    var lib$es6$promise$promise$resolve$$default = lib$es6$promise$promise$resolve$$resolve;
-	    var lib$es6$promise$$internal$$PROMISE_ID = Math.random().toString(36).substring(16);
-	
-	    function lib$es6$promise$$internal$$noop() {}
-	
-	    var lib$es6$promise$$internal$$PENDING   = void 0;
-	    var lib$es6$promise$$internal$$FULFILLED = 1;
-	    var lib$es6$promise$$internal$$REJECTED  = 2;
-	
-	    var lib$es6$promise$$internal$$GET_THEN_ERROR = new lib$es6$promise$$internal$$ErrorObject();
-	
-	    function lib$es6$promise$$internal$$selfFulfillment() {
-	      return new TypeError("You cannot resolve a promise with itself");
-	    }
-	
-	    function lib$es6$promise$$internal$$cannotReturnOwn() {
-	      return new TypeError('A promises callback cannot return that same promise.');
-	    }
-	
-	    function lib$es6$promise$$internal$$getThen(promise) {
-	      try {
-	        return promise.then;
-	      } catch(error) {
-	        lib$es6$promise$$internal$$GET_THEN_ERROR.error = error;
-	        return lib$es6$promise$$internal$$GET_THEN_ERROR;
-	      }
-	    }
-	
-	    function lib$es6$promise$$internal$$tryThen(then, value, fulfillmentHandler, rejectionHandler) {
-	      try {
-	        then.call(value, fulfillmentHandler, rejectionHandler);
-	      } catch(e) {
-	        return e;
-	      }
-	    }
-	
-	    function lib$es6$promise$$internal$$handleForeignThenable(promise, thenable, then) {
-	       lib$es6$promise$asap$$asap(function(promise) {
-	        var sealed = false;
-	        var error = lib$es6$promise$$internal$$tryThen(then, thenable, function(value) {
-	          if (sealed) { return; }
-	          sealed = true;
-	          if (thenable !== value) {
-	            lib$es6$promise$$internal$$resolve(promise, value);
-	          } else {
-	            lib$es6$promise$$internal$$fulfill(promise, value);
-	          }
-	        }, function(reason) {
-	          if (sealed) { return; }
-	          sealed = true;
-	
-	          lib$es6$promise$$internal$$reject(promise, reason);
-	        }, 'Settle: ' + (promise._label || ' unknown promise'));
-	
-	        if (!sealed && error) {
-	          sealed = true;
-	          lib$es6$promise$$internal$$reject(promise, error);
-	        }
-	      }, promise);
-	    }
-	
-	    function lib$es6$promise$$internal$$handleOwnThenable(promise, thenable) {
-	      if (thenable._state === lib$es6$promise$$internal$$FULFILLED) {
-	        lib$es6$promise$$internal$$fulfill(promise, thenable._result);
-	      } else if (thenable._state === lib$es6$promise$$internal$$REJECTED) {
-	        lib$es6$promise$$internal$$reject(promise, thenable._result);
-	      } else {
-	        lib$es6$promise$$internal$$subscribe(thenable, undefined, function(value) {
-	          lib$es6$promise$$internal$$resolve(promise, value);
-	        }, function(reason) {
-	          lib$es6$promise$$internal$$reject(promise, reason);
-	        });
-	      }
-	    }
-	
-	    function lib$es6$promise$$internal$$handleMaybeThenable(promise, maybeThenable, then) {
-	      if (maybeThenable.constructor === promise.constructor &&
-	          then === lib$es6$promise$then$$default &&
-	          constructor.resolve === lib$es6$promise$promise$resolve$$default) {
-	        lib$es6$promise$$internal$$handleOwnThenable(promise, maybeThenable);
-	      } else {
-	        if (then === lib$es6$promise$$internal$$GET_THEN_ERROR) {
-	          lib$es6$promise$$internal$$reject(promise, lib$es6$promise$$internal$$GET_THEN_ERROR.error);
-	        } else if (then === undefined) {
-	          lib$es6$promise$$internal$$fulfill(promise, maybeThenable);
-	        } else if (lib$es6$promise$utils$$isFunction(then)) {
-	          lib$es6$promise$$internal$$handleForeignThenable(promise, maybeThenable, then);
-	        } else {
-	          lib$es6$promise$$internal$$fulfill(promise, maybeThenable);
-	        }
-	      }
-	    }
-	
-	    function lib$es6$promise$$internal$$resolve(promise, value) {
-	      if (promise === value) {
-	        lib$es6$promise$$internal$$reject(promise, lib$es6$promise$$internal$$selfFulfillment());
-	      } else if (lib$es6$promise$utils$$objectOrFunction(value)) {
-	        lib$es6$promise$$internal$$handleMaybeThenable(promise, value, lib$es6$promise$$internal$$getThen(value));
-	      } else {
-	        lib$es6$promise$$internal$$fulfill(promise, value);
-	      }
-	    }
-	
-	    function lib$es6$promise$$internal$$publishRejection(promise) {
-	      if (promise._onerror) {
-	        promise._onerror(promise._result);
-	      }
-	
-	      lib$es6$promise$$internal$$publish(promise);
-	    }
-	
-	    function lib$es6$promise$$internal$$fulfill(promise, value) {
-	      if (promise._state !== lib$es6$promise$$internal$$PENDING) { return; }
-	
-	      promise._result = value;
-	      promise._state = lib$es6$promise$$internal$$FULFILLED;
-	
-	      if (promise._subscribers.length !== 0) {
-	        lib$es6$promise$asap$$asap(lib$es6$promise$$internal$$publish, promise);
-	      }
-	    }
-	
-	    function lib$es6$promise$$internal$$reject(promise, reason) {
-	      if (promise._state !== lib$es6$promise$$internal$$PENDING) { return; }
-	      promise._state = lib$es6$promise$$internal$$REJECTED;
-	      promise._result = reason;
-	
-	      lib$es6$promise$asap$$asap(lib$es6$promise$$internal$$publishRejection, promise);
-	    }
-	
-	    function lib$es6$promise$$internal$$subscribe(parent, child, onFulfillment, onRejection) {
-	      var subscribers = parent._subscribers;
-	      var length = subscribers.length;
-	
-	      parent._onerror = null;
-	
-	      subscribers[length] = child;
-	      subscribers[length + lib$es6$promise$$internal$$FULFILLED] = onFulfillment;
-	      subscribers[length + lib$es6$promise$$internal$$REJECTED]  = onRejection;
-	
-	      if (length === 0 && parent._state) {
-	        lib$es6$promise$asap$$asap(lib$es6$promise$$internal$$publish, parent);
-	      }
-	    }
-	
-	    function lib$es6$promise$$internal$$publish(promise) {
-	      var subscribers = promise._subscribers;
-	      var settled = promise._state;
-	
-	      if (subscribers.length === 0) { return; }
-	
-	      var child, callback, detail = promise._result;
-	
-	      for (var i = 0; i < subscribers.length; i += 3) {
-	        child = subscribers[i];
-	        callback = subscribers[i + settled];
-	
-	        if (child) {
-	          lib$es6$promise$$internal$$invokeCallback(settled, child, callback, detail);
-	        } else {
-	          callback(detail);
-	        }
-	      }
-	
-	      promise._subscribers.length = 0;
-	    }
-	
-	    function lib$es6$promise$$internal$$ErrorObject() {
-	      this.error = null;
-	    }
-	
-	    var lib$es6$promise$$internal$$TRY_CATCH_ERROR = new lib$es6$promise$$internal$$ErrorObject();
-	
-	    function lib$es6$promise$$internal$$tryCatch(callback, detail) {
-	      try {
-	        return callback(detail);
-	      } catch(e) {
-	        lib$es6$promise$$internal$$TRY_CATCH_ERROR.error = e;
-	        return lib$es6$promise$$internal$$TRY_CATCH_ERROR;
-	      }
-	    }
-	
-	    function lib$es6$promise$$internal$$invokeCallback(settled, promise, callback, detail) {
-	      var hasCallback = lib$es6$promise$utils$$isFunction(callback),
-	          value, error, succeeded, failed;
-	
-	      if (hasCallback) {
-	        value = lib$es6$promise$$internal$$tryCatch(callback, detail);
-	
-	        if (value === lib$es6$promise$$internal$$TRY_CATCH_ERROR) {
-	          failed = true;
-	          error = value.error;
-	          value = null;
-	        } else {
-	          succeeded = true;
-	        }
-	
-	        if (promise === value) {
-	          lib$es6$promise$$internal$$reject(promise, lib$es6$promise$$internal$$cannotReturnOwn());
-	          return;
-	        }
-	
-	      } else {
-	        value = detail;
-	        succeeded = true;
-	      }
-	
-	      if (promise._state !== lib$es6$promise$$internal$$PENDING) {
-	        // noop
-	      } else if (hasCallback && succeeded) {
-	        lib$es6$promise$$internal$$resolve(promise, value);
-	      } else if (failed) {
-	        lib$es6$promise$$internal$$reject(promise, error);
-	      } else if (settled === lib$es6$promise$$internal$$FULFILLED) {
-	        lib$es6$promise$$internal$$fulfill(promise, value);
-	      } else if (settled === lib$es6$promise$$internal$$REJECTED) {
-	        lib$es6$promise$$internal$$reject(promise, value);
-	      }
-	    }
-	
-	    function lib$es6$promise$$internal$$initializePromise(promise, resolver) {
-	      try {
-	        resolver(function resolvePromise(value){
-	          lib$es6$promise$$internal$$resolve(promise, value);
-	        }, function rejectPromise(reason) {
-	          lib$es6$promise$$internal$$reject(promise, reason);
-	        });
-	      } catch(e) {
-	        lib$es6$promise$$internal$$reject(promise, e);
-	      }
-	    }
-	
-	    var lib$es6$promise$$internal$$id = 0;
-	    function lib$es6$promise$$internal$$nextId() {
-	      return lib$es6$promise$$internal$$id++;
-	    }
-	
-	    function lib$es6$promise$$internal$$makePromise(promise) {
-	      promise[lib$es6$promise$$internal$$PROMISE_ID] = lib$es6$promise$$internal$$id++;
-	      promise._state = undefined;
-	      promise._result = undefined;
-	      promise._subscribers = [];
-	    }
-	
-	    function lib$es6$promise$promise$all$$all(entries) {
-	      return new lib$es6$promise$enumerator$$default(this, entries).promise;
-	    }
-	    var lib$es6$promise$promise$all$$default = lib$es6$promise$promise$all$$all;
-	    function lib$es6$promise$promise$race$$race(entries) {
-	      /*jshint validthis:true */
-	      var Constructor = this;
-	
-	      if (!lib$es6$promise$utils$$isArray(entries)) {
-	        return new Constructor(function(resolve, reject) {
-	          reject(new TypeError('You must pass an array to race.'));
-	        });
-	      } else {
-	        return new Constructor(function(resolve, reject) {
-	          var length = entries.length;
-	          for (var i = 0; i < length; i++) {
-	            Constructor.resolve(entries[i]).then(resolve, reject);
-	          }
-	        });
-	      }
-	    }
-	    var lib$es6$promise$promise$race$$default = lib$es6$promise$promise$race$$race;
-	    function lib$es6$promise$promise$reject$$reject(reason) {
-	      /*jshint validthis:true */
-	      var Constructor = this;
-	      var promise = new Constructor(lib$es6$promise$$internal$$noop);
-	      lib$es6$promise$$internal$$reject(promise, reason);
-	      return promise;
-	    }
-	    var lib$es6$promise$promise$reject$$default = lib$es6$promise$promise$reject$$reject;
-	
-	
-	    function lib$es6$promise$promise$$needsResolver() {
-	      throw new TypeError('You must pass a resolver function as the first argument to the promise constructor');
-	    }
-	
-	    function lib$es6$promise$promise$$needsNew() {
-	      throw new TypeError("Failed to construct 'Promise': Please use the 'new' operator, this object constructor cannot be called as a function.");
-	    }
-	
-	    var lib$es6$promise$promise$$default = lib$es6$promise$promise$$Promise;
-	    /**
-	      Promise objects represent the eventual result of an asynchronous operation. The
-	      primary way of interacting with a promise is through its `then` method, which
-	      registers callbacks to receive either a promise's eventual value or the reason
-	      why the promise cannot be fulfilled.
-	
-	      Terminology
-	      -----------
-	
-	      - `promise` is an object or function with a `then` method whose behavior conforms to this specification.
-	      - `thenable` is an object or function that defines a `then` method.
-	      - `value` is any legal JavaScript value (including undefined, a thenable, or a promise).
-	      - `exception` is a value that is thrown using the throw statement.
-	      - `reason` is a value that indicates why a promise was rejected.
-	      - `settled` the final resting state of a promise, fulfilled or rejected.
-	
-	      A promise can be in one of three states: pending, fulfilled, or rejected.
-	
-	      Promises that are fulfilled have a fulfillment value and are in the fulfilled
-	      state.  Promises that are rejected have a rejection reason and are in the
-	      rejected state.  A fulfillment value is never a thenable.
-	
-	      Promises can also be said to *resolve* a value.  If this value is also a
-	      promise, then the original promise's settled state will match the value's
-	      settled state.  So a promise that *resolves* a promise that rejects will
-	      itself reject, and a promise that *resolves* a promise that fulfills will
-	      itself fulfill.
-	
-	
-	      Basic Usage:
-	      ------------
-	
-	      ```js
-	      var promise = new Promise(function(resolve, reject) {
-	        // on success
-	        resolve(value);
-	
-	        // on failure
-	        reject(reason);
+	function then(onFulfillment, onRejection) {
+	  var _arguments = arguments;
+	
+	  var parent = this;
+	
+	  var child = new this.constructor(noop);
+	
+	  if (child[PROMISE_ID] === undefined) {
+	    makePromise(child);
+	  }
+	
+	  var _state = parent._state;
+	
+	  if (_state) {
+	    (function () {
+	      var callback = _arguments[_state - 1];
+	      asap(function () {
+	        return invokeCallback(_state, child, callback, parent._result);
 	      });
-	
-	      promise.then(function(value) {
-	        // on fulfillment
-	      }, function(reason) {
-	        // on rejection
-	      });
-	      ```
-	
-	      Advanced Usage:
-	      ---------------
-	
-	      Promises shine when abstracting away asynchronous interactions such as
-	      `XMLHttpRequest`s.
-	
-	      ```js
-	      function getJSON(url) {
-	        return new Promise(function(resolve, reject){
-	          var xhr = new XMLHttpRequest();
-	
-	          xhr.open('GET', url);
-	          xhr.onreadystatechange = handler;
-	          xhr.responseType = 'json';
-	          xhr.setRequestHeader('Accept', 'application/json');
-	          xhr.send();
-	
-	          function handler() {
-	            if (this.readyState === this.DONE) {
-	              if (this.status === 200) {
-	                resolve(this.response);
-	              } else {
-	                reject(new Error('getJSON: `' + url + '` failed with status: [' + this.status + ']'));
-	              }
-	            }
-	          };
-	        });
-	      }
-	
-	      getJSON('/posts.json').then(function(json) {
-	        // on fulfillment
-	      }, function(reason) {
-	        // on rejection
-	      });
-	      ```
-	
-	      Unlike callbacks, promises are great composable primitives.
-	
-	      ```js
-	      Promise.all([
-	        getJSON('/posts'),
-	        getJSON('/comments')
-	      ]).then(function(values){
-	        values[0] // => postsJSON
-	        values[1] // => commentsJSON
-	
-	        return values;
-	      });
-	      ```
-	
-	      @class Promise
-	      @param {function} resolver
-	      Useful for tooling.
-	      @constructor
-	    */
-	    function lib$es6$promise$promise$$Promise(resolver) {
-	      this[lib$es6$promise$$internal$$PROMISE_ID] = lib$es6$promise$$internal$$nextId();
-	      this._result = this._state = undefined;
-	      this._subscribers = [];
-	
-	      if (lib$es6$promise$$internal$$noop !== resolver) {
-	        typeof resolver !== 'function' && lib$es6$promise$promise$$needsResolver();
-	        this instanceof lib$es6$promise$promise$$Promise ? lib$es6$promise$$internal$$initializePromise(this, resolver) : lib$es6$promise$promise$$needsNew();
-	      }
-	    }
-	
-	    lib$es6$promise$promise$$Promise.all = lib$es6$promise$promise$all$$default;
-	    lib$es6$promise$promise$$Promise.race = lib$es6$promise$promise$race$$default;
-	    lib$es6$promise$promise$$Promise.resolve = lib$es6$promise$promise$resolve$$default;
-	    lib$es6$promise$promise$$Promise.reject = lib$es6$promise$promise$reject$$default;
-	    lib$es6$promise$promise$$Promise._setScheduler = lib$es6$promise$asap$$setScheduler;
-	    lib$es6$promise$promise$$Promise._setAsap = lib$es6$promise$asap$$setAsap;
-	    lib$es6$promise$promise$$Promise._asap = lib$es6$promise$asap$$asap;
-	
-	    lib$es6$promise$promise$$Promise.prototype = {
-	      constructor: lib$es6$promise$promise$$Promise,
-	
-	    /**
-	      The primary way of interacting with a promise is through its `then` method,
-	      which registers callbacks to receive either a promise's eventual value or the
-	      reason why the promise cannot be fulfilled.
-	
-	      ```js
-	      findUser().then(function(user){
-	        // user is available
-	      }, function(reason){
-	        // user is unavailable, and you are given the reason why
-	      });
-	      ```
-	
-	      Chaining
-	      --------
-	
-	      The return value of `then` is itself a promise.  This second, 'downstream'
-	      promise is resolved with the return value of the first promise's fulfillment
-	      or rejection handler, or rejected if the handler throws an exception.
-	
-	      ```js
-	      findUser().then(function (user) {
-	        return user.name;
-	      }, function (reason) {
-	        return 'default name';
-	      }).then(function (userName) {
-	        // If `findUser` fulfilled, `userName` will be the user's name, otherwise it
-	        // will be `'default name'`
-	      });
-	
-	      findUser().then(function (user) {
-	        throw new Error('Found user, but still unhappy');
-	      }, function (reason) {
-	        throw new Error('`findUser` rejected and we're unhappy');
-	      }).then(function (value) {
-	        // never reached
-	      }, function (reason) {
-	        // if `findUser` fulfilled, `reason` will be 'Found user, but still unhappy'.
-	        // If `findUser` rejected, `reason` will be '`findUser` rejected and we're unhappy'.
-	      });
-	      ```
-	      If the downstream promise does not specify a rejection handler, rejection reasons will be propagated further downstream.
-	
-	      ```js
-	      findUser().then(function (user) {
-	        throw new PedagogicalException('Upstream error');
-	      }).then(function (value) {
-	        // never reached
-	      }).then(function (value) {
-	        // never reached
-	      }, function (reason) {
-	        // The `PedgagocialException` is propagated all the way down to here
-	      });
-	      ```
-	
-	      Assimilation
-	      ------------
-	
-	      Sometimes the value you want to propagate to a downstream promise can only be
-	      retrieved asynchronously. This can be achieved by returning a promise in the
-	      fulfillment or rejection handler. The downstream promise will then be pending
-	      until the returned promise is settled. This is called *assimilation*.
-	
-	      ```js
-	      findUser().then(function (user) {
-	        return findCommentsByAuthor(user);
-	      }).then(function (comments) {
-	        // The user's comments are now available
-	      });
-	      ```
-	
-	      If the assimliated promise rejects, then the downstream promise will also reject.
-	
-	      ```js
-	      findUser().then(function (user) {
-	        return findCommentsByAuthor(user);
-	      }).then(function (comments) {
-	        // If `findCommentsByAuthor` fulfills, we'll have the value here
-	      }, function (reason) {
-	        // If `findCommentsByAuthor` rejects, we'll have the reason here
-	      });
-	      ```
-	
-	      Simple Example
-	      --------------
-	
-	      Synchronous Example
-	
-	      ```javascript
-	      var result;
-	
-	      try {
-	        result = findResult();
-	        // success
-	      } catch(reason) {
-	        // failure
-	      }
-	      ```
-	
-	      Errback Example
-	
-	      ```js
-	      findResult(function(result, err){
-	        if (err) {
-	          // failure
-	        } else {
-	          // success
-	        }
-	      });
-	      ```
-	
-	      Promise Example;
-	
-	      ```javascript
-	      findResult().then(function(result){
-	        // success
-	      }, function(reason){
-	        // failure
-	      });
-	      ```
-	
-	      Advanced Example
-	      --------------
-	
-	      Synchronous Example
-	
-	      ```javascript
-	      var author, books;
-	
-	      try {
-	        author = findAuthor();
-	        books  = findBooksByAuthor(author);
-	        // success
-	      } catch(reason) {
-	        // failure
-	      }
-	      ```
-	
-	      Errback Example
-	
-	      ```js
-	
-	      function foundBooks(books) {
-	
-	      }
-	
-	      function failure(reason) {
-	
-	      }
-	
-	      findAuthor(function(author, err){
-	        if (err) {
-	          failure(err);
-	          // failure
-	        } else {
-	          try {
-	            findBoooksByAuthor(author, function(books, err) {
-	              if (err) {
-	                failure(err);
-	              } else {
-	                try {
-	                  foundBooks(books);
-	                } catch(reason) {
-	                  failure(reason);
-	                }
-	              }
-	            });
-	          } catch(error) {
-	            failure(err);
-	          }
-	          // success
-	        }
-	      });
-	      ```
-	
-	      Promise Example;
-	
-	      ```javascript
-	      findAuthor().
-	        then(findBooksByAuthor).
-	        then(function(books){
-	          // found books
-	      }).catch(function(reason){
-	        // something went wrong
-	      });
-	      ```
-	
-	      @method then
-	      @param {Function} onFulfilled
-	      @param {Function} onRejected
-	      Useful for tooling.
-	      @return {Promise}
-	    */
-	      then: lib$es6$promise$then$$default,
-	
-	    /**
-	      `catch` is simply sugar for `then(undefined, onRejection)` which makes it the same
-	      as the catch block of a try/catch statement.
-	
-	      ```js
-	      function findAuthor(){
-	        throw new Error('couldn't find that author');
-	      }
-	
-	      // synchronous
-	      try {
-	        findAuthor();
-	      } catch(reason) {
-	        // something went wrong
-	      }
-	
-	      // async with promises
-	      findAuthor().catch(function(reason){
-	        // something went wrong
-	      });
-	      ```
-	
-	      @method catch
-	      @param {Function} onRejection
-	      Useful for tooling.
-	      @return {Promise}
-	    */
-	      'catch': function(onRejection) {
-	        return this.then(null, onRejection);
-	      }
-	    };
-	    var lib$es6$promise$enumerator$$default = lib$es6$promise$enumerator$$Enumerator;
-	    function lib$es6$promise$enumerator$$Enumerator(Constructor, input) {
-	      this._instanceConstructor = Constructor;
-	      this.promise = new Constructor(lib$es6$promise$$internal$$noop);
-	
-	      if (!this.promise[lib$es6$promise$$internal$$PROMISE_ID]) {
-	        lib$es6$promise$$internal$$makePromise(this.promise);
-	      }
-	
-	      if (lib$es6$promise$utils$$isArray(input)) {
-	        this._input     = input;
-	        this.length     = input.length;
-	        this._remaining = input.length;
-	
-	        this._result = new Array(this.length);
-	
-	        if (this.length === 0) {
-	          lib$es6$promise$$internal$$fulfill(this.promise, this._result);
-	        } else {
-	          this.length = this.length || 0;
-	          this._enumerate();
-	          if (this._remaining === 0) {
-	            lib$es6$promise$$internal$$fulfill(this.promise, this._result);
-	          }
-	        }
-	      } else {
-	        lib$es6$promise$$internal$$reject(this.promise, lib$es6$promise$enumerator$$validationError());
-	      }
-	    }
-	
-	    function lib$es6$promise$enumerator$$validationError() {
-	      return new Error('Array Methods must be provided an Array');
-	    }
-	
-	    lib$es6$promise$enumerator$$Enumerator.prototype._enumerate = function() {
-	      var length  = this.length;
-	      var input   = this._input;
-	
-	      for (var i = 0; this._state === lib$es6$promise$$internal$$PENDING && i < length; i++) {
-	        this._eachEntry(input[i], i);
-	      }
-	    };
-	
-	    lib$es6$promise$enumerator$$Enumerator.prototype._eachEntry = function(entry, i) {
-	      var c = this._instanceConstructor;
-	      var resolve = c.resolve;
-	
-	      if (resolve === lib$es6$promise$promise$resolve$$default) {
-	        var then = lib$es6$promise$$internal$$getThen(entry);
-	
-	        if (then === lib$es6$promise$then$$default &&
-	            entry._state !== lib$es6$promise$$internal$$PENDING) {
-	          this._settledAt(entry._state, i, entry._result);
-	        } else if (typeof then !== 'function') {
-	          this._remaining--;
-	          this._result[i] = entry;
-	        } else if (c === lib$es6$promise$promise$$default) {
-	          var promise = new c(lib$es6$promise$$internal$$noop);
-	          lib$es6$promise$$internal$$handleMaybeThenable(promise, entry, then);
-	          this._willSettleAt(promise, i);
-	        } else {
-	          this._willSettleAt(new c(function(resolve) { resolve(entry); }), i);
-	        }
-	      } else {
-	        this._willSettleAt(resolve(entry), i);
-	      }
-	    };
-	
-	    lib$es6$promise$enumerator$$Enumerator.prototype._settledAt = function(state, i, value) {
-	      var promise = this.promise;
-	
-	      if (promise._state === lib$es6$promise$$internal$$PENDING) {
-	        this._remaining--;
-	
-	        if (state === lib$es6$promise$$internal$$REJECTED) {
-	          lib$es6$promise$$internal$$reject(promise, value);
-	        } else {
-	          this._result[i] = value;
-	        }
-	      }
-	
-	      if (this._remaining === 0) {
-	        lib$es6$promise$$internal$$fulfill(promise, this._result);
-	      }
-	    };
-	
-	    lib$es6$promise$enumerator$$Enumerator.prototype._willSettleAt = function(promise, i) {
-	      var enumerator = this;
-	
-	      lib$es6$promise$$internal$$subscribe(promise, undefined, function(value) {
-	        enumerator._settledAt(lib$es6$promise$$internal$$FULFILLED, i, value);
-	      }, function(reason) {
-	        enumerator._settledAt(lib$es6$promise$$internal$$REJECTED, i, reason);
-	      });
-	    };
-	    function lib$es6$promise$polyfill$$polyfill() {
-	      var local;
-	
-	      if (typeof global !== 'undefined') {
-	          local = global;
-	      } else if (typeof self !== 'undefined') {
-	          local = self;
-	      } else {
-	          try {
-	              local = Function('return this')();
-	          } catch (e) {
-	              throw new Error('polyfill failed because global object is unavailable in this environment');
-	          }
-	      }
-	
-	      var P = local.Promise;
-	
-	      if (P && Object.prototype.toString.call(P.resolve()) === '[object Promise]' && !P.cast) {
+	    })();
+	  } else {
+	    subscribe(parent, child, onFulfillment, onRejection);
+	  }
+	
+	  return child;
+	}
+	
+	/**
+	  `Promise.resolve` returns a promise that will become resolved with the
+	  passed `value`. It is shorthand for the following:
+	
+	  ```javascript
+	  let promise = new Promise(function(resolve, reject){
+	    resolve(1);
+	  });
+	
+	  promise.then(function(value){
+	    // value === 1
+	  });
+	  ```
+	
+	  Instead of writing the above, your code now simply becomes the following:
+	
+	  ```javascript
+	  let promise = Promise.resolve(1);
+	
+	  promise.then(function(value){
+	    // value === 1
+	  });
+	  ```
+	
+	  @method resolve
+	  @static
+	  @param {Any} value value that the returned promise will be resolved with
+	  Useful for tooling.
+	  @return {Promise} a promise that will become fulfilled with the given
+	  `value`
+	*/
+	function resolve(object) {
+	  /*jshint validthis:true */
+	  var Constructor = this;
+	
+	  if (object && typeof object === 'object' && object.constructor === Constructor) {
+	    return object;
+	  }
+	
+	  var promise = new Constructor(noop);
+	  _resolve(promise, object);
+	  return promise;
+	}
+	
+	var PROMISE_ID = Math.random().toString(36).substring(16);
+	
+	function noop() {}
+	
+	var PENDING = void 0;
+	var FULFILLED = 1;
+	var REJECTED = 2;
+	
+	var GET_THEN_ERROR = new ErrorObject();
+	
+	function selfFulfillment() {
+	  return new TypeError("You cannot resolve a promise with itself");
+	}
+	
+	function cannotReturnOwn() {
+	  return new TypeError('A promises callback cannot return that same promise.');
+	}
+	
+	function getThen(promise) {
+	  try {
+	    return promise.then;
+	  } catch (error) {
+	    GET_THEN_ERROR.error = error;
+	    return GET_THEN_ERROR;
+	  }
+	}
+	
+	function tryThen(then, value, fulfillmentHandler, rejectionHandler) {
+	  try {
+	    then.call(value, fulfillmentHandler, rejectionHandler);
+	  } catch (e) {
+	    return e;
+	  }
+	}
+	
+	function handleForeignThenable(promise, thenable, then) {
+	  asap(function (promise) {
+	    var sealed = false;
+	    var error = tryThen(then, thenable, function (value) {
+	      if (sealed) {
 	        return;
 	      }
+	      sealed = true;
+	      if (thenable !== value) {
+	        _resolve(promise, value);
+	      } else {
+	        fulfill(promise, value);
+	      }
+	    }, function (reason) {
+	      if (sealed) {
+	        return;
+	      }
+	      sealed = true;
 	
-	      local.Promise = lib$es6$promise$promise$$default;
+	      _reject(promise, reason);
+	    }, 'Settle: ' + (promise._label || ' unknown promise'));
+	
+	    if (!sealed && error) {
+	      sealed = true;
+	      _reject(promise, error);
 	    }
-	    var lib$es6$promise$polyfill$$default = lib$es6$promise$polyfill$$polyfill;
+	  }, promise);
+	}
 	
-	    var lib$es6$promise$umd$$ES6Promise = {
-	      'Promise': lib$es6$promise$promise$$default,
-	      'polyfill': lib$es6$promise$polyfill$$default
-	    };
+	function handleOwnThenable(promise, thenable) {
+	  if (thenable._state === FULFILLED) {
+	    fulfill(promise, thenable._result);
+	  } else if (thenable._state === REJECTED) {
+	    _reject(promise, thenable._result);
+	  } else {
+	    subscribe(thenable, undefined, function (value) {
+	      return _resolve(promise, value);
+	    }, function (reason) {
+	      return _reject(promise, reason);
+	    });
+	  }
+	}
 	
-	    /* global define:true module:true window: true */
-	    if ("function" === 'function' && __webpack_require__(8)['amd']) {
-	      !(__WEBPACK_AMD_DEFINE_RESULT__ = function() { return lib$es6$promise$umd$$ES6Promise; }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-	    } else if (typeof module !== 'undefined' && module['exports']) {
-	      module['exports'] = lib$es6$promise$umd$$ES6Promise;
-	    } else if (typeof this !== 'undefined') {
-	      this['ES6Promise'] = lib$es6$promise$umd$$ES6Promise;
+	function handleMaybeThenable(promise, maybeThenable, then$$) {
+	  if (maybeThenable.constructor === promise.constructor && then$$ === then && maybeThenable.constructor.resolve === resolve) {
+	    handleOwnThenable(promise, maybeThenable);
+	  } else {
+	    if (then$$ === GET_THEN_ERROR) {
+	      _reject(promise, GET_THEN_ERROR.error);
+	    } else if (then$$ === undefined) {
+	      fulfill(promise, maybeThenable);
+	    } else if (isFunction(then$$)) {
+	      handleForeignThenable(promise, maybeThenable, then$$);
+	    } else {
+	      fulfill(promise, maybeThenable);
+	    }
+	  }
+	}
+	
+	function _resolve(promise, value) {
+	  if (promise === value) {
+	    _reject(promise, selfFulfillment());
+	  } else if (objectOrFunction(value)) {
+	    handleMaybeThenable(promise, value, getThen(value));
+	  } else {
+	    fulfill(promise, value);
+	  }
+	}
+	
+	function publishRejection(promise) {
+	  if (promise._onerror) {
+	    promise._onerror(promise._result);
+	  }
+	
+	  publish(promise);
+	}
+	
+	function fulfill(promise, value) {
+	  if (promise._state !== PENDING) {
+	    return;
+	  }
+	
+	  promise._result = value;
+	  promise._state = FULFILLED;
+	
+	  if (promise._subscribers.length !== 0) {
+	    asap(publish, promise);
+	  }
+	}
+	
+	function _reject(promise, reason) {
+	  if (promise._state !== PENDING) {
+	    return;
+	  }
+	  promise._state = REJECTED;
+	  promise._result = reason;
+	
+	  asap(publishRejection, promise);
+	}
+	
+	function subscribe(parent, child, onFulfillment, onRejection) {
+	  var _subscribers = parent._subscribers;
+	  var length = _subscribers.length;
+	
+	  parent._onerror = null;
+	
+	  _subscribers[length] = child;
+	  _subscribers[length + FULFILLED] = onFulfillment;
+	  _subscribers[length + REJECTED] = onRejection;
+	
+	  if (length === 0 && parent._state) {
+	    asap(publish, parent);
+	  }
+	}
+	
+	function publish(promise) {
+	  var subscribers = promise._subscribers;
+	  var settled = promise._state;
+	
+	  if (subscribers.length === 0) {
+	    return;
+	  }
+	
+	  var child = undefined,
+	      callback = undefined,
+	      detail = promise._result;
+	
+	  for (var i = 0; i < subscribers.length; i += 3) {
+	    child = subscribers[i];
+	    callback = subscribers[i + settled];
+	
+	    if (child) {
+	      invokeCallback(settled, child, callback, detail);
+	    } else {
+	      callback(detail);
+	    }
+	  }
+	
+	  promise._subscribers.length = 0;
+	}
+	
+	function ErrorObject() {
+	  this.error = null;
+	}
+	
+	var TRY_CATCH_ERROR = new ErrorObject();
+	
+	function tryCatch(callback, detail) {
+	  try {
+	    return callback(detail);
+	  } catch (e) {
+	    TRY_CATCH_ERROR.error = e;
+	    return TRY_CATCH_ERROR;
+	  }
+	}
+	
+	function invokeCallback(settled, promise, callback, detail) {
+	  var hasCallback = isFunction(callback),
+	      value = undefined,
+	      error = undefined,
+	      succeeded = undefined,
+	      failed = undefined;
+	
+	  if (hasCallback) {
+	    value = tryCatch(callback, detail);
+	
+	    if (value === TRY_CATCH_ERROR) {
+	      failed = true;
+	      error = value.error;
+	      value = null;
+	    } else {
+	      succeeded = true;
 	    }
 	
-	    lib$es6$promise$polyfill$$default();
-	}).call(this);
+	    if (promise === value) {
+	      _reject(promise, cannotReturnOwn());
+	      return;
+	    }
+	  } else {
+	    value = detail;
+	    succeeded = true;
+	  }
+	
+	  if (promise._state !== PENDING) {
+	    // noop
+	  } else if (hasCallback && succeeded) {
+	      _resolve(promise, value);
+	    } else if (failed) {
+	      _reject(promise, error);
+	    } else if (settled === FULFILLED) {
+	      fulfill(promise, value);
+	    } else if (settled === REJECTED) {
+	      _reject(promise, value);
+	    }
+	}
+	
+	function initializePromise(promise, resolver) {
+	  try {
+	    resolver(function resolvePromise(value) {
+	      _resolve(promise, value);
+	    }, function rejectPromise(reason) {
+	      _reject(promise, reason);
+	    });
+	  } catch (e) {
+	    _reject(promise, e);
+	  }
+	}
+	
+	var id = 0;
+	function nextId() {
+	  return id++;
+	}
+	
+	function makePromise(promise) {
+	  promise[PROMISE_ID] = id++;
+	  promise._state = undefined;
+	  promise._result = undefined;
+	  promise._subscribers = [];
+	}
+	
+	function Enumerator(Constructor, input) {
+	  this._instanceConstructor = Constructor;
+	  this.promise = new Constructor(noop);
+	
+	  if (!this.promise[PROMISE_ID]) {
+	    makePromise(this.promise);
+	  }
+	
+	  if (isArray(input)) {
+	    this._input = input;
+	    this.length = input.length;
+	    this._remaining = input.length;
+	
+	    this._result = new Array(this.length);
+	
+	    if (this.length === 0) {
+	      fulfill(this.promise, this._result);
+	    } else {
+	      this.length = this.length || 0;
+	      this._enumerate();
+	      if (this._remaining === 0) {
+	        fulfill(this.promise, this._result);
+	      }
+	    }
+	  } else {
+	    _reject(this.promise, validationError());
+	  }
+	}
+	
+	function validationError() {
+	  return new Error('Array Methods must be provided an Array');
+	};
+	
+	Enumerator.prototype._enumerate = function () {
+	  var length = this.length;
+	  var _input = this._input;
+	
+	  for (var i = 0; this._state === PENDING && i < length; i++) {
+	    this._eachEntry(_input[i], i);
+	  }
+	};
+	
+	Enumerator.prototype._eachEntry = function (entry, i) {
+	  var c = this._instanceConstructor;
+	  var resolve$$ = c.resolve;
+	
+	  if (resolve$$ === resolve) {
+	    var _then = getThen(entry);
+	
+	    if (_then === then && entry._state !== PENDING) {
+	      this._settledAt(entry._state, i, entry._result);
+	    } else if (typeof _then !== 'function') {
+	      this._remaining--;
+	      this._result[i] = entry;
+	    } else if (c === Promise) {
+	      var promise = new c(noop);
+	      handleMaybeThenable(promise, entry, _then);
+	      this._willSettleAt(promise, i);
+	    } else {
+	      this._willSettleAt(new c(function (resolve$$) {
+	        return resolve$$(entry);
+	      }), i);
+	    }
+	  } else {
+	    this._willSettleAt(resolve$$(entry), i);
+	  }
+	};
+	
+	Enumerator.prototype._settledAt = function (state, i, value) {
+	  var promise = this.promise;
+	
+	  if (promise._state === PENDING) {
+	    this._remaining--;
+	
+	    if (state === REJECTED) {
+	      _reject(promise, value);
+	    } else {
+	      this._result[i] = value;
+	    }
+	  }
+	
+	  if (this._remaining === 0) {
+	    fulfill(promise, this._result);
+	  }
+	};
+	
+	Enumerator.prototype._willSettleAt = function (promise, i) {
+	  var enumerator = this;
+	
+	  subscribe(promise, undefined, function (value) {
+	    return enumerator._settledAt(FULFILLED, i, value);
+	  }, function (reason) {
+	    return enumerator._settledAt(REJECTED, i, reason);
+	  });
+	};
+	
+	/**
+	  `Promise.all` accepts an array of promises, and returns a new promise which
+	  is fulfilled with an array of fulfillment values for the passed promises, or
+	  rejected with the reason of the first passed promise to be rejected. It casts all
+	  elements of the passed iterable to promises as it runs this algorithm.
+	
+	  Example:
+	
+	  ```javascript
+	  let promise1 = resolve(1);
+	  let promise2 = resolve(2);
+	  let promise3 = resolve(3);
+	  let promises = [ promise1, promise2, promise3 ];
+	
+	  Promise.all(promises).then(function(array){
+	    // The array here would be [ 1, 2, 3 ];
+	  });
+	  ```
+	
+	  If any of the `promises` given to `all` are rejected, the first promise
+	  that is rejected will be given as an argument to the returned promises's
+	  rejection handler. For example:
+	
+	  Example:
+	
+	  ```javascript
+	  let promise1 = resolve(1);
+	  let promise2 = reject(new Error("2"));
+	  let promise3 = reject(new Error("3"));
+	  let promises = [ promise1, promise2, promise3 ];
+	
+	  Promise.all(promises).then(function(array){
+	    // Code here never runs because there are rejected promises!
+	  }, function(error) {
+	    // error.message === "2"
+	  });
+	  ```
+	
+	  @method all
+	  @static
+	  @param {Array} entries array of promises
+	  @param {String} label optional string for labeling the promise.
+	  Useful for tooling.
+	  @return {Promise} promise that is fulfilled when all `promises` have been
+	  fulfilled, or rejected if any of them become rejected.
+	  @static
+	*/
+	function all(entries) {
+	  return new Enumerator(this, entries).promise;
+	}
+	
+	/**
+	  `Promise.race` returns a new promise which is settled in the same way as the
+	  first passed promise to settle.
+	
+	  Example:
+	
+	  ```javascript
+	  let promise1 = new Promise(function(resolve, reject){
+	    setTimeout(function(){
+	      resolve('promise 1');
+	    }, 200);
+	  });
+	
+	  let promise2 = new Promise(function(resolve, reject){
+	    setTimeout(function(){
+	      resolve('promise 2');
+	    }, 100);
+	  });
+	
+	  Promise.race([promise1, promise2]).then(function(result){
+	    // result === 'promise 2' because it was resolved before promise1
+	    // was resolved.
+	  });
+	  ```
+	
+	  `Promise.race` is deterministic in that only the state of the first
+	  settled promise matters. For example, even if other promises given to the
+	  `promises` array argument are resolved, but the first settled promise has
+	  become rejected before the other promises became fulfilled, the returned
+	  promise will become rejected:
+	
+	  ```javascript
+	  let promise1 = new Promise(function(resolve, reject){
+	    setTimeout(function(){
+	      resolve('promise 1');
+	    }, 200);
+	  });
+	
+	  let promise2 = new Promise(function(resolve, reject){
+	    setTimeout(function(){
+	      reject(new Error('promise 2'));
+	    }, 100);
+	  });
+	
+	  Promise.race([promise1, promise2]).then(function(result){
+	    // Code here never runs
+	  }, function(reason){
+	    // reason.message === 'promise 2' because promise 2 became rejected before
+	    // promise 1 became fulfilled
+	  });
+	  ```
+	
+	  An example real-world use case is implementing timeouts:
+	
+	  ```javascript
+	  Promise.race([ajax('foo.json'), timeout(5000)])
+	  ```
+	
+	  @method race
+	  @static
+	  @param {Array} promises array of promises to observe
+	  Useful for tooling.
+	  @return {Promise} a promise which settles in the same way as the first passed
+	  promise to settle.
+	*/
+	function race(entries) {
+	  /*jshint validthis:true */
+	  var Constructor = this;
+	
+	  if (!isArray(entries)) {
+	    return new Constructor(function (_, reject) {
+	      return reject(new TypeError('You must pass an array to race.'));
+	    });
+	  } else {
+	    return new Constructor(function (resolve, reject) {
+	      var length = entries.length;
+	      for (var i = 0; i < length; i++) {
+	        Constructor.resolve(entries[i]).then(resolve, reject);
+	      }
+	    });
+	  }
+	}
+	
+	/**
+	  `Promise.reject` returns a promise rejected with the passed `reason`.
+	  It is shorthand for the following:
+	
+	  ```javascript
+	  let promise = new Promise(function(resolve, reject){
+	    reject(new Error('WHOOPS'));
+	  });
+	
+	  promise.then(function(value){
+	    // Code here doesn't run because the promise is rejected!
+	  }, function(reason){
+	    // reason.message === 'WHOOPS'
+	  });
+	  ```
+	
+	  Instead of writing the above, your code now simply becomes the following:
+	
+	  ```javascript
+	  let promise = Promise.reject(new Error('WHOOPS'));
+	
+	  promise.then(function(value){
+	    // Code here doesn't run because the promise is rejected!
+	  }, function(reason){
+	    // reason.message === 'WHOOPS'
+	  });
+	  ```
+	
+	  @method reject
+	  @static
+	  @param {Any} reason value that the returned promise will be rejected with.
+	  Useful for tooling.
+	  @return {Promise} a promise rejected with the given `reason`.
+	*/
+	function reject(reason) {
+	  /*jshint validthis:true */
+	  var Constructor = this;
+	  var promise = new Constructor(noop);
+	  _reject(promise, reason);
+	  return promise;
+	}
+	
+	function needsResolver() {
+	  throw new TypeError('You must pass a resolver function as the first argument to the promise constructor');
+	}
+	
+	function needsNew() {
+	  throw new TypeError("Failed to construct 'Promise': Please use the 'new' operator, this object constructor cannot be called as a function.");
+	}
+	
+	/**
+	  Promise objects represent the eventual result of an asynchronous operation. The
+	  primary way of interacting with a promise is through its `then` method, which
+	  registers callbacks to receive either a promise's eventual value or the reason
+	  why the promise cannot be fulfilled.
+	
+	  Terminology
+	  -----------
+	
+	  - `promise` is an object or function with a `then` method whose behavior conforms to this specification.
+	  - `thenable` is an object or function that defines a `then` method.
+	  - `value` is any legal JavaScript value (including undefined, a thenable, or a promise).
+	  - `exception` is a value that is thrown using the throw statement.
+	  - `reason` is a value that indicates why a promise was rejected.
+	  - `settled` the final resting state of a promise, fulfilled or rejected.
+	
+	  A promise can be in one of three states: pending, fulfilled, or rejected.
+	
+	  Promises that are fulfilled have a fulfillment value and are in the fulfilled
+	  state.  Promises that are rejected have a rejection reason and are in the
+	  rejected state.  A fulfillment value is never a thenable.
+	
+	  Promises can also be said to *resolve* a value.  If this value is also a
+	  promise, then the original promise's settled state will match the value's
+	  settled state.  So a promise that *resolves* a promise that rejects will
+	  itself reject, and a promise that *resolves* a promise that fulfills will
+	  itself fulfill.
 	
 	
+	  Basic Usage:
+	  ------------
+	
+	  ```js
+	  let promise = new Promise(function(resolve, reject) {
+	    // on success
+	    resolve(value);
+	
+	    // on failure
+	    reject(reason);
+	  });
+	
+	  promise.then(function(value) {
+	    // on fulfillment
+	  }, function(reason) {
+	    // on rejection
+	  });
+	  ```
+	
+	  Advanced Usage:
+	  ---------------
+	
+	  Promises shine when abstracting away asynchronous interactions such as
+	  `XMLHttpRequest`s.
+	
+	  ```js
+	  function getJSON(url) {
+	    return new Promise(function(resolve, reject){
+	      let xhr = new XMLHttpRequest();
+	
+	      xhr.open('GET', url);
+	      xhr.onreadystatechange = handler;
+	      xhr.responseType = 'json';
+	      xhr.setRequestHeader('Accept', 'application/json');
+	      xhr.send();
+	
+	      function handler() {
+	        if (this.readyState === this.DONE) {
+	          if (this.status === 200) {
+	            resolve(this.response);
+	          } else {
+	            reject(new Error('getJSON: `' + url + '` failed with status: [' + this.status + ']'));
+	          }
+	        }
+	      };
+	    });
+	  }
+	
+	  getJSON('/posts.json').then(function(json) {
+	    // on fulfillment
+	  }, function(reason) {
+	    // on rejection
+	  });
+	  ```
+	
+	  Unlike callbacks, promises are great composable primitives.
+	
+	  ```js
+	  Promise.all([
+	    getJSON('/posts'),
+	    getJSON('/comments')
+	  ]).then(function(values){
+	    values[0] // => postsJSON
+	    values[1] // => commentsJSON
+	
+	    return values;
+	  });
+	  ```
+	
+	  @class Promise
+	  @param {function} resolver
+	  Useful for tooling.
+	  @constructor
+	*/
+	function Promise(resolver) {
+	  this[PROMISE_ID] = nextId();
+	  this._result = this._state = undefined;
+	  this._subscribers = [];
+	
+	  if (noop !== resolver) {
+	    typeof resolver !== 'function' && needsResolver();
+	    this instanceof Promise ? initializePromise(this, resolver) : needsNew();
+	  }
+	}
+	
+	Promise.all = all;
+	Promise.race = race;
+	Promise.resolve = resolve;
+	Promise.reject = reject;
+	Promise._setScheduler = setScheduler;
+	Promise._setAsap = setAsap;
+	Promise._asap = asap;
+	
+	Promise.prototype = {
+	  constructor: Promise,
+	
+	  /**
+	    The primary way of interacting with a promise is through its `then` method,
+	    which registers callbacks to receive either a promise's eventual value or the
+	    reason why the promise cannot be fulfilled.
+	  
+	    ```js
+	    findUser().then(function(user){
+	      // user is available
+	    }, function(reason){
+	      // user is unavailable, and you are given the reason why
+	    });
+	    ```
+	  
+	    Chaining
+	    --------
+	  
+	    The return value of `then` is itself a promise.  This second, 'downstream'
+	    promise is resolved with the return value of the first promise's fulfillment
+	    or rejection handler, or rejected if the handler throws an exception.
+	  
+	    ```js
+	    findUser().then(function (user) {
+	      return user.name;
+	    }, function (reason) {
+	      return 'default name';
+	    }).then(function (userName) {
+	      // If `findUser` fulfilled, `userName` will be the user's name, otherwise it
+	      // will be `'default name'`
+	    });
+	  
+	    findUser().then(function (user) {
+	      throw new Error('Found user, but still unhappy');
+	    }, function (reason) {
+	      throw new Error('`findUser` rejected and we're unhappy');
+	    }).then(function (value) {
+	      // never reached
+	    }, function (reason) {
+	      // if `findUser` fulfilled, `reason` will be 'Found user, but still unhappy'.
+	      // If `findUser` rejected, `reason` will be '`findUser` rejected and we're unhappy'.
+	    });
+	    ```
+	    If the downstream promise does not specify a rejection handler, rejection reasons will be propagated further downstream.
+	  
+	    ```js
+	    findUser().then(function (user) {
+	      throw new PedagogicalException('Upstream error');
+	    }).then(function (value) {
+	      // never reached
+	    }).then(function (value) {
+	      // never reached
+	    }, function (reason) {
+	      // The `PedgagocialException` is propagated all the way down to here
+	    });
+	    ```
+	  
+	    Assimilation
+	    ------------
+	  
+	    Sometimes the value you want to propagate to a downstream promise can only be
+	    retrieved asynchronously. This can be achieved by returning a promise in the
+	    fulfillment or rejection handler. The downstream promise will then be pending
+	    until the returned promise is settled. This is called *assimilation*.
+	  
+	    ```js
+	    findUser().then(function (user) {
+	      return findCommentsByAuthor(user);
+	    }).then(function (comments) {
+	      // The user's comments are now available
+	    });
+	    ```
+	  
+	    If the assimliated promise rejects, then the downstream promise will also reject.
+	  
+	    ```js
+	    findUser().then(function (user) {
+	      return findCommentsByAuthor(user);
+	    }).then(function (comments) {
+	      // If `findCommentsByAuthor` fulfills, we'll have the value here
+	    }, function (reason) {
+	      // If `findCommentsByAuthor` rejects, we'll have the reason here
+	    });
+	    ```
+	  
+	    Simple Example
+	    --------------
+	  
+	    Synchronous Example
+	  
+	    ```javascript
+	    let result;
+	  
+	    try {
+	      result = findResult();
+	      // success
+	    } catch(reason) {
+	      // failure
+	    }
+	    ```
+	  
+	    Errback Example
+	  
+	    ```js
+	    findResult(function(result, err){
+	      if (err) {
+	        // failure
+	      } else {
+	        // success
+	      }
+	    });
+	    ```
+	  
+	    Promise Example;
+	  
+	    ```javascript
+	    findResult().then(function(result){
+	      // success
+	    }, function(reason){
+	      // failure
+	    });
+	    ```
+	  
+	    Advanced Example
+	    --------------
+	  
+	    Synchronous Example
+	  
+	    ```javascript
+	    let author, books;
+	  
+	    try {
+	      author = findAuthor();
+	      books  = findBooksByAuthor(author);
+	      // success
+	    } catch(reason) {
+	      // failure
+	    }
+	    ```
+	  
+	    Errback Example
+	  
+	    ```js
+	  
+	    function foundBooks(books) {
+	  
+	    }
+	  
+	    function failure(reason) {
+	  
+	    }
+	  
+	    findAuthor(function(author, err){
+	      if (err) {
+	        failure(err);
+	        // failure
+	      } else {
+	        try {
+	          findBoooksByAuthor(author, function(books, err) {
+	            if (err) {
+	              failure(err);
+	            } else {
+	              try {
+	                foundBooks(books);
+	              } catch(reason) {
+	                failure(reason);
+	              }
+	            }
+	          });
+	        } catch(error) {
+	          failure(err);
+	        }
+	        // success
+	      }
+	    });
+	    ```
+	  
+	    Promise Example;
+	  
+	    ```javascript
+	    findAuthor().
+	      then(findBooksByAuthor).
+	      then(function(books){
+	        // found books
+	    }).catch(function(reason){
+	      // something went wrong
+	    });
+	    ```
+	  
+	    @method then
+	    @param {Function} onFulfilled
+	    @param {Function} onRejected
+	    Useful for tooling.
+	    @return {Promise}
+	  */
+	  then: then,
+	
+	  /**
+	    `catch` is simply sugar for `then(undefined, onRejection)` which makes it the same
+	    as the catch block of a try/catch statement.
+	  
+	    ```js
+	    function findAuthor(){
+	      throw new Error('couldn't find that author');
+	    }
+	  
+	    // synchronous
+	    try {
+	      findAuthor();
+	    } catch(reason) {
+	      // something went wrong
+	    }
+	  
+	    // async with promises
+	    findAuthor().catch(function(reason){
+	      // something went wrong
+	    });
+	    ```
+	  
+	    @method catch
+	    @param {Function} onRejection
+	    Useful for tooling.
+	    @return {Promise}
+	  */
+	  'catch': function _catch(onRejection) {
+	    return this.then(null, onRejection);
+	  }
+	};
+	
+	function polyfill() {
+	    var local = undefined;
+	
+	    if (typeof global !== 'undefined') {
+	        local = global;
+	    } else if (typeof self !== 'undefined') {
+	        local = self;
+	    } else {
+	        try {
+	            local = Function('return this')();
+	        } catch (e) {
+	            throw new Error('polyfill failed because global object is unavailable in this environment');
+	        }
+	    }
+	
+	    var P = local.Promise;
+	
+	    if (P) {
+	        var promiseToString = null;
+	        try {
+	            promiseToString = Object.prototype.toString.call(P.resolve());
+	        } catch (e) {
+	            // silently ignored
+	        }
+	
+	        if (promiseToString === '[object Promise]' && !P.cast) {
+	            return;
+	        }
+	    }
+	
+	    local.Promise = Promise;
+	}
+	
+	polyfill();
+	// Strange compat..
+	Promise.polyfill = polyfill;
+	Promise.Promise = Promise;
+	
+	return Promise;
+	
+	})));
+	//# sourceMappingURL=es6-promise.map
 	
 	/*** EXPORTS FROM exports-loader ***/
 	module.exports = global.Promise;
 	}.call(global));
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(5), (function() { return this; }()), __webpack_require__(6)(module)))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(5), __webpack_require__(4), (function() { return this; }())))
 
 /***/ },
 /* 5 */
@@ -1716,25 +1920,40 @@
 	var cachedSetTimeout;
 	var cachedClearTimeout;
 	
+	function defaultSetTimout() {
+	    throw new Error('setTimeout has not been defined');
+	}
+	function defaultClearTimeout () {
+	    throw new Error('clearTimeout has not been defined');
+	}
 	(function () {
 	    try {
-	        cachedSetTimeout = setTimeout;
-	    } catch (e) {
-	        cachedSetTimeout = function () {
-	            throw new Error('setTimeout is not defined');
+	        if (typeof setTimeout === 'function') {
+	            cachedSetTimeout = setTimeout;
+	        } else {
+	            cachedSetTimeout = defaultSetTimout;
 	        }
+	    } catch (e) {
+	        cachedSetTimeout = defaultSetTimout;
 	    }
 	    try {
-	        cachedClearTimeout = clearTimeout;
-	    } catch (e) {
-	        cachedClearTimeout = function () {
-	            throw new Error('clearTimeout is not defined');
+	        if (typeof clearTimeout === 'function') {
+	            cachedClearTimeout = clearTimeout;
+	        } else {
+	            cachedClearTimeout = defaultClearTimeout;
 	        }
+	    } catch (e) {
+	        cachedClearTimeout = defaultClearTimeout;
 	    }
 	} ())
 	function runTimeout(fun) {
 	    if (cachedSetTimeout === setTimeout) {
 	        //normal enviroments in sane situations
+	        return setTimeout(fun, 0);
+	    }
+	    // if setTimeout wasn't available but was latter defined
+	    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+	        cachedSetTimeout = setTimeout;
 	        return setTimeout(fun, 0);
 	    }
 	    try {
@@ -1755,6 +1974,11 @@
 	function runClearTimeout(marker) {
 	    if (cachedClearTimeout === clearTimeout) {
 	        //normal enviroments in sane situations
+	        return clearTimeout(marker);
+	    }
+	    // if clearTimeout wasn't available but was latter defined
+	    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+	        cachedClearTimeout = clearTimeout;
 	        return clearTimeout(marker);
 	    }
 	    try {
@@ -1871,33 +2095,10 @@
 /* 6 */
 /***/ function(module, exports) {
 
-	module.exports = function(module) {
-		if(!module.webpackPolyfill) {
-			module.deprecate = function() {};
-			module.paths = [];
-			// module.parent = undefined by default
-			module.children = [];
-			module.webpackPolyfill = 1;
-		}
-		return module;
-	}
-
-
-/***/ },
-/* 7 */
-/***/ function(module, exports) {
-
 	/* (ignored) */
 
 /***/ },
-/* 8 */
-/***/ function(module, exports) {
-
-	module.exports = function() { throw new Error("define cannot be used indirect"); };
-
-
-/***/ },
-/* 9 */
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;//     Underscore.js 1.8.3
@@ -3451,7 +3652,7 @@
 
 
 /***/ },
-/* 10 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/*** IMPORTS FROM imports-loader ***/
@@ -3481,7 +3682,7 @@
 	
 	  // Next for Node.js or CommonJS. jQuery may not be needed as a module.
 	  } else if (true) {
-	    var _ = __webpack_require__(9), $;
+	    var _ = __webpack_require__(7), $;
 	    try { $ = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"jquery\""); e.code = 'MODULE_NOT_FOUND'; throw e; }())); } catch (e) {}
 	    factory(root, exports, _, $);
 	
@@ -5382,7 +5583,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 11 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -5392,15 +5593,15 @@
 	 *
 	 *   firebase = require('firebase');
 	 */
-	var firebase = __webpack_require__(12);
+	var firebase = __webpack_require__(10);
+	__webpack_require__(11);
+	__webpack_require__(12);
 	__webpack_require__(13);
-	__webpack_require__(14);
-	__webpack_require__(15);
 	module.exports = firebase;
 
 
 /***/ },
-/* 12 */
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, Promise) {/*! @license Firebase v3.4.0
@@ -5437,10 +5638,10 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(4)))
 
 /***/ },
-/* 13 */
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var firebase = __webpack_require__(12);
+	var firebase = __webpack_require__(10);
 	/*! @license Firebase v3.4.0
 	    Build: 3.4.0-rc.3
 	    Terms: https://developers.google.com/terms */
@@ -5662,10 +5863,10 @@
 
 
 /***/ },
-/* 14 */
+/* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Promise) {var firebase = __webpack_require__(12);
+	/* WEBPACK VAR INJECTION */(function(Promise) {var firebase = __webpack_require__(10);
 	/*! @license Firebase v3.4.0
 	    Build: 3.4.0-rc.3
 	    Terms: https://developers.google.com/terms */
@@ -5914,10 +6115,10 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(4)))
 
 /***/ },
-/* 15 */
+/* 13 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var firebase = __webpack_require__(12);
+	var firebase = __webpack_require__(10);
 	/*! @license Firebase v3.4.0
 	    Build: 3.4.0-rc.3
 	    Terms: https://developers.google.com/terms */
@@ -6022,15 +6223,15 @@
 
 
 /***/ },
-/* 16 */
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var diff = __webpack_require__(17)
-	var patch = __webpack_require__(30)
-	var h = __webpack_require__(39)
-	var create = __webpack_require__(50)
-	var VNode = __webpack_require__(41)
-	var VText = __webpack_require__(42)
+	var diff = __webpack_require__(15)
+	var patch = __webpack_require__(28)
+	var h = __webpack_require__(37)
+	var create = __webpack_require__(48)
+	var VNode = __webpack_require__(39)
+	var VText = __webpack_require__(40)
 	
 	module.exports = {
 	    diff: diff,
@@ -6043,28 +6244,28 @@
 
 
 /***/ },
-/* 17 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var diff = __webpack_require__(18)
+	var diff = __webpack_require__(16)
 	
 	module.exports = diff
 
 
 /***/ },
-/* 18 */
+/* 16 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isArray = __webpack_require__(19)
+	var isArray = __webpack_require__(17)
 	
-	var VPatch = __webpack_require__(20)
-	var isVNode = __webpack_require__(22)
-	var isVText = __webpack_require__(23)
-	var isWidget = __webpack_require__(24)
-	var isThunk = __webpack_require__(25)
-	var handleThunk = __webpack_require__(26)
+	var VPatch = __webpack_require__(18)
+	var isVNode = __webpack_require__(20)
+	var isVText = __webpack_require__(21)
+	var isWidget = __webpack_require__(22)
+	var isThunk = __webpack_require__(23)
+	var handleThunk = __webpack_require__(24)
 	
-	var diffProps = __webpack_require__(27)
+	var diffProps = __webpack_require__(25)
 	
 	module.exports = diff
 	
@@ -6485,7 +6686,7 @@
 
 
 /***/ },
-/* 19 */
+/* 17 */
 /***/ function(module, exports) {
 
 	var nativeIsArray = Array.isArray
@@ -6499,10 +6700,10 @@
 
 
 /***/ },
-/* 20 */
+/* 18 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(21)
+	var version = __webpack_require__(19)
 	
 	VirtualPatch.NONE = 0
 	VirtualPatch.VTEXT = 1
@@ -6527,17 +6728,17 @@
 
 
 /***/ },
-/* 21 */
+/* 19 */
 /***/ function(module, exports) {
 
 	module.exports = "2"
 
 
 /***/ },
-/* 22 */
+/* 20 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(21)
+	var version = __webpack_require__(19)
 	
 	module.exports = isVirtualNode
 	
@@ -6547,10 +6748,10 @@
 
 
 /***/ },
-/* 23 */
+/* 21 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(21)
+	var version = __webpack_require__(19)
 	
 	module.exports = isVirtualText
 	
@@ -6560,7 +6761,7 @@
 
 
 /***/ },
-/* 24 */
+/* 22 */
 /***/ function(module, exports) {
 
 	module.exports = isWidget
@@ -6571,7 +6772,7 @@
 
 
 /***/ },
-/* 25 */
+/* 23 */
 /***/ function(module, exports) {
 
 	module.exports = isThunk
@@ -6582,13 +6783,13 @@
 
 
 /***/ },
-/* 26 */
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isVNode = __webpack_require__(22)
-	var isVText = __webpack_require__(23)
-	var isWidget = __webpack_require__(24)
-	var isThunk = __webpack_require__(25)
+	var isVNode = __webpack_require__(20)
+	var isVText = __webpack_require__(21)
+	var isWidget = __webpack_require__(22)
+	var isThunk = __webpack_require__(23)
 	
 	module.exports = handleThunk
 	
@@ -6628,11 +6829,11 @@
 
 
 /***/ },
-/* 27 */
+/* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isObject = __webpack_require__(28)
-	var isHook = __webpack_require__(29)
+	var isObject = __webpack_require__(26)
+	var isHook = __webpack_require__(27)
 	
 	module.exports = diffProps
 	
@@ -6692,7 +6893,7 @@
 
 
 /***/ },
-/* 28 */
+/* 26 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -6703,7 +6904,7 @@
 
 
 /***/ },
-/* 29 */
+/* 27 */
 /***/ function(module, exports) {
 
 	module.exports = isHook
@@ -6716,24 +6917,24 @@
 
 
 /***/ },
-/* 30 */
+/* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var patch = __webpack_require__(31)
+	var patch = __webpack_require__(29)
 	
 	module.exports = patch
 
 
 /***/ },
-/* 31 */
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var document = __webpack_require__(32)
-	var isArray = __webpack_require__(19)
+	var document = __webpack_require__(30)
+	var isArray = __webpack_require__(17)
 	
-	var render = __webpack_require__(34)
-	var domIndex = __webpack_require__(36)
-	var patchOp = __webpack_require__(37)
+	var render = __webpack_require__(32)
+	var domIndex = __webpack_require__(34)
+	var patchOp = __webpack_require__(35)
 	module.exports = patch
 	
 	function patch(rootNode, patches, renderOptions) {
@@ -6811,12 +7012,12 @@
 
 
 /***/ },
-/* 32 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {var topLevel = typeof global !== 'undefined' ? global :
 	    typeof window !== 'undefined' ? window : {}
-	var minDoc = __webpack_require__(33);
+	var minDoc = __webpack_require__(31);
 	
 	if (typeof document !== 'undefined') {
 	    module.exports = document;
@@ -6833,23 +7034,23 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 33 */
+/* 31 */
 /***/ function(module, exports) {
 
 	/* (ignored) */
 
 /***/ },
-/* 34 */
+/* 32 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var document = __webpack_require__(32)
+	var document = __webpack_require__(30)
 	
-	var applyProperties = __webpack_require__(35)
+	var applyProperties = __webpack_require__(33)
 	
-	var isVNode = __webpack_require__(22)
-	var isVText = __webpack_require__(23)
-	var isWidget = __webpack_require__(24)
-	var handleThunk = __webpack_require__(26)
+	var isVNode = __webpack_require__(20)
+	var isVText = __webpack_require__(21)
+	var isWidget = __webpack_require__(22)
+	var handleThunk = __webpack_require__(24)
 	
 	module.exports = createElement
 	
@@ -6891,11 +7092,11 @@
 
 
 /***/ },
-/* 35 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isObject = __webpack_require__(28)
-	var isHook = __webpack_require__(29)
+	var isObject = __webpack_require__(26)
+	var isHook = __webpack_require__(27)
 	
 	module.exports = applyProperties
 	
@@ -6994,7 +7195,7 @@
 
 
 /***/ },
-/* 36 */
+/* 34 */
 /***/ function(module, exports) {
 
 	// Maps a virtual DOM tree onto a real DOM tree in an efficient manner.
@@ -7085,15 +7286,15 @@
 
 
 /***/ },
-/* 37 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var applyProperties = __webpack_require__(35)
+	var applyProperties = __webpack_require__(33)
 	
-	var isWidget = __webpack_require__(24)
-	var VPatch = __webpack_require__(20)
+	var isWidget = __webpack_require__(22)
+	var VPatch = __webpack_require__(18)
 	
-	var updateWidget = __webpack_require__(38)
+	var updateWidget = __webpack_require__(36)
 	
 	module.exports = applyPatch
 	
@@ -7242,10 +7443,10 @@
 
 
 /***/ },
-/* 38 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isWidget = __webpack_require__(24)
+	var isWidget = __webpack_require__(22)
 	
 	module.exports = updateWidget
 	
@@ -7263,33 +7464,33 @@
 
 
 /***/ },
-/* 39 */
+/* 37 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var h = __webpack_require__(40)
+	var h = __webpack_require__(38)
 	
 	module.exports = h
 
 
 /***/ },
-/* 40 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var isArray = __webpack_require__(19);
+	var isArray = __webpack_require__(17);
 	
-	var VNode = __webpack_require__(41);
-	var VText = __webpack_require__(42);
-	var isVNode = __webpack_require__(22);
-	var isVText = __webpack_require__(23);
-	var isWidget = __webpack_require__(24);
-	var isHook = __webpack_require__(29);
-	var isVThunk = __webpack_require__(25);
+	var VNode = __webpack_require__(39);
+	var VText = __webpack_require__(40);
+	var isVNode = __webpack_require__(20);
+	var isVText = __webpack_require__(21);
+	var isWidget = __webpack_require__(22);
+	var isHook = __webpack_require__(27);
+	var isVThunk = __webpack_require__(23);
 	
-	var parseTag = __webpack_require__(43);
-	var softSetHook = __webpack_require__(45);
-	var evHook = __webpack_require__(46);
+	var parseTag = __webpack_require__(41);
+	var softSetHook = __webpack_require__(43);
+	var evHook = __webpack_require__(44);
 	
 	module.exports = h;
 	
@@ -7415,14 +7616,14 @@
 
 
 /***/ },
-/* 41 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(21)
-	var isVNode = __webpack_require__(22)
-	var isWidget = __webpack_require__(24)
-	var isThunk = __webpack_require__(25)
-	var isVHook = __webpack_require__(29)
+	var version = __webpack_require__(19)
+	var isVNode = __webpack_require__(20)
+	var isWidget = __webpack_require__(22)
+	var isThunk = __webpack_require__(23)
+	var isVHook = __webpack_require__(27)
 	
 	module.exports = VirtualNode
 	
@@ -7493,10 +7694,10 @@
 
 
 /***/ },
-/* 42 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var version = __webpack_require__(21)
+	var version = __webpack_require__(19)
 	
 	module.exports = VirtualText
 	
@@ -7509,12 +7710,12 @@
 
 
 /***/ },
-/* 43 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var split = __webpack_require__(44);
+	var split = __webpack_require__(42);
 	
 	var classIdSplit = /([\.#]?[a-zA-Z0-9\u007F-\uFFFF_:-]+)/;
 	var notClassId = /^\.|#/;
@@ -7569,7 +7770,7 @@
 
 
 /***/ },
-/* 44 */
+/* 42 */
 /***/ function(module, exports) {
 
 	/*!
@@ -7681,7 +7882,7 @@
 
 
 /***/ },
-/* 45 */
+/* 43 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -7704,12 +7905,12 @@
 
 
 /***/ },
-/* 46 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var EvStore = __webpack_require__(47);
+	var EvStore = __webpack_require__(45);
 	
 	module.exports = EvHook;
 	
@@ -7737,12 +7938,12 @@
 
 
 /***/ },
-/* 47 */
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var OneVersionConstraint = __webpack_require__(48);
+	var OneVersionConstraint = __webpack_require__(46);
 	
 	var MY_VERSION = '7';
 	OneVersionConstraint('ev-store', MY_VERSION);
@@ -7763,12 +7964,12 @@
 
 
 /***/ },
-/* 48 */
+/* 46 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 	
-	var Individual = __webpack_require__(49);
+	var Individual = __webpack_require__(47);
 	
 	module.exports = OneVersion;
 	
@@ -7791,7 +7992,7 @@
 
 
 /***/ },
-/* 49 */
+/* 47 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -7817,13 +8018,2890 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 50 */
+/* 48 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var createElement = __webpack_require__(34)
+	var createElement = __webpack_require__(32)
 	
 	module.exports = createElement
 
+
+/***/ },
+/* 49 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _virtualDom = __webpack_require__(14);
+	
+	var _view = __webpack_require__(50);
+	
+	var _view2 = _interopRequireDefault(_view);
+	
+	var _app = __webpack_require__(1);
+	
+	var _app2 = _interopRequireDefault(_app);
+	
+	var _team = __webpack_require__(51);
+	
+	var _team2 = _interopRequireDefault(_team);
+	
+	var _player = __webpack_require__(53);
+	
+	var _player2 = _interopRequireDefault(_player);
+	
+	var _utils = __webpack_require__(73);
+	
+	var _translate = __webpack_require__(54);
+	
+	var _translate2 = _interopRequireDefault(_translate);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var PlayersTable = function (_View) {
+	  _inherits(PlayersTable, _View);
+	
+	  function PlayersTable() {
+	    _classCallCheck(this, PlayersTable);
+	
+	    return _possibleConstructorReturn(this, (PlayersTable.__proto__ || Object.getPrototypeOf(PlayersTable)).apply(this, arguments));
+	  }
+	
+	  _createClass(PlayersTable, [{
+	    key: 'initialize',
+	    value: function initialize() {
+	      this.userModel = _app2.default.getUserModel();
+	      this.collection = new _team2.default();
+	      this.collection.fetch();
+	      this.childView = new _player2.default();
+	      console.log(this.userModel);
+	      this.listenTo(this.collection, 'update', this.render);
+	    }
+	  }, {
+	    key: 'addPlayer',
+	    value: function addPlayer(e) {
+	      e.preventDefault();
+	      var data = (0, _utils.serializeObject)(e.target);
+	      if (!data.playersName) return;
+	      localStorage.setItem('myName', data.playersName);
+	      localStorage.setItem('aggreeToGo', true);
+	      e.target.reset();
+	      this.collection.create(data);
+	    }
+	  }, {
+	    key: 'template',
+	    get: function get() {
+	      var _this2 = this;
+	
+	      return (0, _virtualDom.h)('div.play-team', [(0, _virtualDom.h)('h1', [(0, _virtualDom.h)('span', _translate2.default.t('Football match process')), (0, _virtualDom.h)('span', this.collection.matchDate)]), (0, _virtualDom.h)('ol.players-list', this.collection.map(function (model) {
+	        return _this2.childView.setModel(model).render();
+	      })),
+	      // (localStorage.getItem('aggreeToGo') ? null : (
+	      (0, _virtualDom.h)('form', { onsubmit: this.addPlayer.bind(this) }, [(0, _virtualDom.h)('input', {
+	        style: localStorage.getItem('myName') ? {
+	          visibility: 'hidden',
+	          height: 0,
+	          width: 0
+	        } : {},
+	        type: 'text',
+	        name: 'playersName',
+	        placeholder: _translate2.default.t('Type your name'),
+	        value: localStorage.getItem('myName')
+	      }), (0, _virtualDom.h)('button.submit-go', _translate2.default.t('submit go'))])]);
+	    }
+	  }]);
+	
+	  return PlayersTable;
+	}(_view2.default);
+	
+	exports.default = PlayersTable;
+
+/***/ },
+/* 50 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Backbone) {'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _virtualDom = __webpack_require__(14);
+	
+	var _app = __webpack_require__(1);
+	
+	var _app2 = _interopRequireDefault(_app);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var View = function (_Backbone$View) {
+	  _inherits(View, _Backbone$View);
+	
+	  function View() {
+	    _classCallCheck(this, View);
+	
+	    return _possibleConstructorReturn(this, (View.__proto__ || Object.getPrototypeOf(View)).apply(this, arguments));
+	  }
+	
+	  _createClass(View, [{
+	    key: 'update',
+	    value: function update() {
+	      var rootNode = _app2.default.getRootNode();
+	      var tree = this.template;
+	      var patches = (0, _virtualDom.diff)(this.tree, tree);
+	      (0, _virtualDom.patch)(rootNode, patches);
+	      this.tree = tree;
+	    }
+	  }, {
+	    key: 'attach',
+	    value: function attach() {
+	      this.tree = this.template;
+	      return this.tree;
+	    }
+	  }, {
+	    key: 'render',
+	    value: function render() {
+	      console.log('render', this);
+	      if (this.tree) {
+	        return this.update();
+	      }
+	      return this.attach();
+	    }
+	  }, {
+	    key: 'template',
+	    get: function get() {
+	      return (0, _virtualDom.h)('div');
+	    }
+	  }]);
+	
+	  return View;
+	}(Backbone.View);
+	
+	exports.default = View;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)))
+
+/***/ },
+/* 51 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Backbone, fetch) {'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _player = __webpack_require__(52);
+	
+	var _player2 = _interopRequireDefault(_player);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var TeamCollection = function (_Backbone$Collection) {
+	  _inherits(TeamCollection, _Backbone$Collection);
+	
+	  function TeamCollection() {
+	    _classCallCheck(this, TeamCollection);
+	
+	    return _possibleConstructorReturn(this, (TeamCollection.__proto__ || Object.getPrototypeOf(TeamCollection)).apply(this, arguments));
+	  }
+	
+	  _createClass(TeamCollection, [{
+	    key: 'initMatch',
+	    value: function initMatch() {
+	      fetch(this.urlBase + '.json', {
+	        method: 'POST',
+	        body: {}
+	      });
+	    }
+	  }, {
+	    key: 'parse',
+	    value: function parse(data) {
+	      return Object.keys(data).map(function (key) {
+	        return Object.assign({}, { name: key }, data[key]);
+	      });
+	    }
+	  }, {
+	    key: 'apiBase',
+	    get: function get() {
+	      return 'https://footballgo-fcfc3.firebaseio.com';
+	    }
+	  }, {
+	    key: 'urlBase',
+	    get: function get() {
+	      return this.apiBase + '/players/' + this.matchDate;
+	    }
+	  }, {
+	    key: 'url',
+	    get: function get() {
+	      return this.urlBase + '.json';
+	    }
+	  }, {
+	    key: 'matchDate',
+	    get: function get() {
+	      return TeamCollection.formatDate(TeamCollection.nextWednesday);
+	    }
+	  }, {
+	    key: 'model',
+	    get: function get() {
+	      return _player2.default;
+	    }
+	  }], [{
+	    key: 'formatDate',
+	    value: function formatDate(date) {
+	      var dateArr = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
+	
+	      return dateArr[0] + '-' + dateArr[1] + '-' + dateArr[2];
+	    }
+	  }, {
+	    key: 'nextWednesday',
+	    get: function get() {
+	      var todayDay = new Date().getDay();
+	      var today = new Date();
+	
+	      var dayDelta = function dayDelta() {
+	        if (todayDay < 4) return 3 - todayDay;
+	        return 10 - todayDay;
+	      };
+	
+	      return new Date(today.getFullYear(), today.getMonth(), today.getDate() + dayDelta());
+	    }
+	  }]);
+	
+	  return TeamCollection;
+	}(Backbone.Collection);
+	
+	exports.default = TeamCollection;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2), __webpack_require__(3)))
+
+/***/ },
+/* 52 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(Backbone) {'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var PlayerModel = function (_Backbone$Model) {
+	  _inherits(PlayerModel, _Backbone$Model);
+	
+	  function PlayerModel() {
+	    _classCallCheck(this, PlayerModel);
+	
+	    return _possibleConstructorReturn(this, (PlayerModel.__proto__ || Object.getPrototypeOf(PlayerModel)).apply(this, arguments));
+	  }
+	
+	  _createClass(PlayerModel, [{
+	    key: 'url',
+	    value: function url() {
+	      return '' + this.collection.urlBase + (this.get(this.idAttribute) ? '/' + this.get(this.idAttribute) : '') + '.json';
+	    }
+	  }, {
+	    key: 'defaults',
+	    get: function get() {
+	      return {
+	        playersName: 'Ronaldo',
+	        flag: 'ru'
+	      };
+	    }
+	  }, {
+	    key: 'idAttribute',
+	    get: function get() {
+	      return 'name';
+	    }
+	  }]);
+	
+	  return PlayerModel;
+	}(Backbone.Model);
+	
+	exports.default = PlayerModel;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(2)))
+
+/***/ },
+/* 53 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _virtualDom = __webpack_require__(14);
+	
+	var _view = __webpack_require__(50);
+	
+	var _view2 = _interopRequireDefault(_view);
+	
+	var _player = __webpack_require__(52);
+	
+	var _player2 = _interopRequireDefault(_player);
+	
+	var _translate = __webpack_require__(54);
+	
+	var _translate2 = _interopRequireDefault(_translate);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var PlayerView = function (_View) {
+	  _inherits(PlayerView, _View);
+	
+	  function PlayerView(options) {
+	    _classCallCheck(this, PlayerView);
+	
+	    var _this = _possibleConstructorReturn(this, (PlayerView.__proto__ || Object.getPrototypeOf(PlayerView)).call(this, options));
+	
+	    _this.model = new _player2.default();
+	    return _this;
+	  }
+	
+	  _createClass(PlayerView, [{
+	    key: 'setModel',
+	    value: function setModel(model) {
+	      this.model.set(model.toJSON());
+	      return this;
+	    }
+	  }, {
+	    key: 'onRemove',
+	    value: function onRemove() {
+	      localStorage.removeItem('aggreeToGo');
+	      this.model.destroy();
+	    }
+	  }, {
+	    key: 'template',
+	    get: function get() {
+	      return (0, _virtualDom.h)('li.player', { key: this.model.get('name') }, [(0, _virtualDom.h)('span', this.model.get('playersName')), (0, _virtualDom.h)('div.remove', { onclick: this.onRemove.bind(this) }, _translate2.default.t('wont go'))]);
+	    }
+	  }]);
+	
+	  return PlayerView;
+	}(_view2.default);
+	
+	exports.default = PlayerView;
+
+/***/ },
+/* 54 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _i18next = __webpack_require__(55);
+	
+	var _i18next2 = _interopRequireDefault(_i18next);
+	
+	var _en = __webpack_require__(71);
+	
+	var _en2 = _interopRequireDefault(_en);
+	
+	var _ru = __webpack_require__(72);
+	
+	var _ru2 = _interopRequireDefault(_ru);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	_i18next2.default.init({
+	  lng: 'ru-RU',
+	  fallbackLng: 'en',
+	  resources: {
+	    en: _en2.default,
+	    ru: _ru2.default
+	  }
+	});
+	
+	exports.default = _i18next2.default;
+
+/***/ },
+/* 55 */
+/***/ function(module, exports, __webpack_require__) {
+
+	module.exports = __webpack_require__(56).default;
+
+
+/***/ },
+/* 56 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _i18next = __webpack_require__(57);
+	
+	var _i18next2 = _interopRequireDefault(_i18next);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	exports.default = _i18next2.default;
+
+/***/ },
+/* 57 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+	
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+	
+	var _logger = __webpack_require__(58);
+	
+	var _logger2 = _interopRequireDefault(_logger);
+	
+	var _EventEmitter2 = __webpack_require__(59);
+	
+	var _EventEmitter3 = _interopRequireDefault(_EventEmitter2);
+	
+	var _ResourceStore = __webpack_require__(60);
+	
+	var _ResourceStore2 = _interopRequireDefault(_ResourceStore);
+	
+	var _Translator = __webpack_require__(62);
+	
+	var _Translator2 = _interopRequireDefault(_Translator);
+	
+	var _LanguageUtils = __webpack_require__(65);
+	
+	var _LanguageUtils2 = _interopRequireDefault(_LanguageUtils);
+	
+	var _PluralResolver = __webpack_require__(66);
+	
+	var _PluralResolver2 = _interopRequireDefault(_PluralResolver);
+	
+	var _Interpolator = __webpack_require__(67);
+	
+	var _Interpolator2 = _interopRequireDefault(_Interpolator);
+	
+	var _BackendConnector = __webpack_require__(68);
+	
+	var _BackendConnector2 = _interopRequireDefault(_BackendConnector);
+	
+	var _CacheConnector = __webpack_require__(69);
+	
+	var _CacheConnector2 = _interopRequireDefault(_CacheConnector);
+	
+	var _defaults2 = __webpack_require__(70);
+	
+	var _postProcessor = __webpack_require__(63);
+	
+	var _postProcessor2 = _interopRequireDefault(_postProcessor);
+	
+	var _v = __webpack_require__(64);
+	
+	var compat = _interopRequireWildcard(_v);
+	
+	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _defaults(obj, defaults) { var keys = Object.getOwnPropertyNames(defaults); for (var i = 0; i < keys.length; i++) { var key = keys[i]; var value = Object.getOwnPropertyDescriptor(defaults, key); if (value && value.configurable && obj[key] === undefined) { Object.defineProperty(obj, key, value); } } return obj; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : _defaults(subClass, superClass); }
+	
+	var I18n = function (_EventEmitter) {
+	  _inherits(I18n, _EventEmitter);
+	
+	  function I18n() {
+	    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+	    var callback = arguments[1];
+	
+	    _classCallCheck(this, I18n);
+	
+	    var _this = _possibleConstructorReturn(this, _EventEmitter.call(this));
+	
+	    _this.options = (0, _defaults2.transformOptions)(options);
+	    _this.services = {};
+	    _this.logger = _logger2.default;
+	    _this.modules = {};
+	
+	    if (callback && !_this.isInitialized) _this.init(options, callback);
+	    return _this;
+	  }
+	
+	  I18n.prototype.init = function init(options, callback) {
+	    var _this2 = this;
+	
+	    if (typeof options === 'function') {
+	      callback = options;
+	      options = {};
+	    }
+	    if (!options) options = {};
+	
+	    if (options.compatibilityAPI === 'v1') {
+	      this.options = _extends({}, (0, _defaults2.get)(), (0, _defaults2.transformOptions)(compat.convertAPIOptions(options)), {});
+	    } else if (options.compatibilityJSON === 'v1') {
+	      this.options = _extends({}, (0, _defaults2.get)(), (0, _defaults2.transformOptions)(compat.convertJSONOptions(options)), {});
+	    } else {
+	      this.options = _extends({}, (0, _defaults2.get)(), this.options, (0, _defaults2.transformOptions)(options));
+	    }
+	    if (!callback) callback = function callback() {};
+	
+	    function createClassOnDemand(ClassOrObject) {
+	      if (!ClassOrObject) return;
+	      if (typeof ClassOrObject === 'function') return new ClassOrObject();
+	      return ClassOrObject;
+	    }
+	
+	    // init services
+	    if (!this.options.isClone) {
+	      if (this.modules.logger) {
+	        _logger2.default.init(createClassOnDemand(this.modules.logger), this.options);
+	      } else {
+	        _logger2.default.init(null, this.options);
+	      }
+	
+	      var lu = new _LanguageUtils2.default(this.options);
+	      this.store = new _ResourceStore2.default(this.options.resources, this.options);
+	
+	      var s = this.services;
+	      s.logger = _logger2.default;
+	      s.resourceStore = this.store;
+	      s.resourceStore.on('added removed', function (lng, ns) {
+	        s.cacheConnector.save();
+	      });
+	      s.languageUtils = lu;
+	      s.pluralResolver = new _PluralResolver2.default(lu, { prepend: this.options.pluralSeparator, compatibilityJSON: this.options.compatibilityJSON });
+	      s.interpolator = new _Interpolator2.default(this.options);
+	
+	      s.backendConnector = new _BackendConnector2.default(createClassOnDemand(this.modules.backend), s.resourceStore, s, this.options);
+	      // pipe events from backendConnector
+	      s.backendConnector.on('*', function (event) {
+	        for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+	          args[_key - 1] = arguments[_key];
+	        }
+	
+	        _this2.emit.apply(_this2, [event].concat(args));
+	      });
+	
+	      s.backendConnector.on('loaded', function (loaded) {
+	        s.cacheConnector.save();
+	      });
+	
+	      s.cacheConnector = new _CacheConnector2.default(createClassOnDemand(this.modules.cache), s.resourceStore, s, this.options);
+	      // pipe events from backendConnector
+	      s.cacheConnector.on('*', function (event) {
+	        for (var _len2 = arguments.length, args = Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1; _key2 < _len2; _key2++) {
+	          args[_key2 - 1] = arguments[_key2];
+	        }
+	
+	        _this2.emit.apply(_this2, [event].concat(args));
+	      });
+	
+	      if (this.modules.languageDetector) {
+	        s.languageDetector = createClassOnDemand(this.modules.languageDetector);
+	        s.languageDetector.init(s, this.options.detection, this.options);
+	      }
+	
+	      this.translator = new _Translator2.default(this.services, this.options);
+	      // pipe events from translator
+	      this.translator.on('*', function (event) {
+	        for (var _len3 = arguments.length, args = Array(_len3 > 1 ? _len3 - 1 : 0), _key3 = 1; _key3 < _len3; _key3++) {
+	          args[_key3 - 1] = arguments[_key3];
+	        }
+	
+	        _this2.emit.apply(_this2, [event].concat(args));
+	      });
+	    }
+	
+	    // append api
+	    var storeApi = ['getResource', 'addResource', 'addResources', 'addResourceBundle', 'removeResourceBundle', 'hasResourceBundle', 'getResourceBundle'];
+	    storeApi.forEach(function (fcName) {
+	      _this2[fcName] = function () {
+	        return this.store[fcName].apply(this.store, arguments);
+	      };
+	    });
+	
+	    // TODO: COMPATIBILITY remove this
+	    if (this.options.compatibilityAPI === 'v1') compat.appendBackwardsAPI(this);
+	
+	    var load = function load() {
+	      _this2.changeLanguage(_this2.options.lng, function (err, t) {
+	        _this2.emit('initialized', _this2.options);
+	        _this2.logger.log('initialized', _this2.options);
+	
+	        callback(err, t);
+	      });
+	    };
+	
+	    if (this.options.resources || !this.options.initImmediate) {
+	      load();
+	    } else {
+	      setTimeout(load, 0);
+	    }
+	
+	    return this;
+	  };
+	
+	  I18n.prototype.loadResources = function loadResources(callback) {
+	    var _this3 = this;
+	
+	    if (!callback) callback = function callback() {};
+	
+	    if (!this.options.resources) {
+	      var _ret = function () {
+	        if (_this3.language && _this3.language.toLowerCase() === 'cimode') return {
+	            v: callback()
+	          }; // avoid loading resources for cimode
+	
+	        var toLoad = [];
+	
+	        var append = function append(lng) {
+	          var lngs = _this3.services.languageUtils.toResolveHierarchy(lng);
+	          lngs.forEach(function (l) {
+	            if (toLoad.indexOf(l) < 0) toLoad.push(l);
+	          });
+	        };
+	
+	        append(_this3.language);
+	
+	        if (_this3.options.preload) {
+	          _this3.options.preload.forEach(function (l) {
+	            append(l);
+	          });
+	        }
+	
+	        _this3.services.cacheConnector.load(toLoad, _this3.options.ns, function () {
+	          _this3.services.backendConnector.load(toLoad, _this3.options.ns, callback);
+	        });
+	      }();
+	
+	      if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+	    } else {
+	      callback(null);
+	    }
+	  };
+	
+	  I18n.prototype.reloadResources = function reloadResources(lngs, ns) {
+	    if (!lngs) lngs = this.languages;
+	    if (!ns) ns = this.options.ns;
+	    this.services.backendConnector.reload(lngs, ns);
+	  };
+	
+	  I18n.prototype.use = function use(module) {
+	    if (module.type === 'backend') {
+	      this.modules.backend = module;
+	    }
+	
+	    if (module.type === 'cache') {
+	      this.modules.cache = module;
+	    }
+	
+	    if (module.type === 'logger' || module.log && module.warn && module.warn) {
+	      this.modules.logger = module;
+	    }
+	
+	    if (module.type === 'languageDetector') {
+	      this.modules.languageDetector = module;
+	    }
+	
+	    if (module.type === 'postProcessor') {
+	      _postProcessor2.default.addPostProcessor(module);
+	    }
+	
+	    return this;
+	  };
+	
+	  I18n.prototype.changeLanguage = function changeLanguage(lng, callback) {
+	    var _this4 = this;
+	
+	    var done = function done(err) {
+	      if (lng) {
+	        _this4.emit('languageChanged', lng);
+	        _this4.logger.log('languageChanged', lng);
+	      }
+	
+	      if (callback) callback(err, function () {
+	        for (var _len4 = arguments.length, args = Array(_len4), _key4 = 0; _key4 < _len4; _key4++) {
+	          args[_key4] = arguments[_key4];
+	        }
+	
+	        return _this4.t.apply(_this4, args);
+	      });
+	    };
+	
+	    if (!lng && this.services.languageDetector) lng = this.services.languageDetector.detect();
+	
+	    if (lng) {
+	      this.language = lng;
+	      this.languages = this.services.languageUtils.toResolveHierarchy(lng);
+	
+	      this.translator.changeLanguage(lng);
+	
+	      if (this.services.languageDetector) this.services.languageDetector.cacheUserLanguage(lng);
+	    }
+	
+	    this.loadResources(function (err) {
+	      done(err);
+	    });
+	  };
+	
+	  I18n.prototype.getFixedT = function getFixedT(lng, ns) {
+	    var _this5 = this;
+	
+	    var fixedT = function fixedT(key, options) {
+	      options = options || {};
+	      options.lng = options.lng || fixedT.lng;
+	      options.ns = options.ns || fixedT.ns;
+	      return _this5.t(key, options);
+	    };
+	    fixedT.lng = lng;
+	    fixedT.ns = ns;
+	    return fixedT;
+	  };
+	
+	  I18n.prototype.t = function t() {
+	    return this.translator && this.translator.translate.apply(this.translator, arguments);
+	  };
+	
+	  I18n.prototype.exists = function exists() {
+	    return this.translator && this.translator.exists.apply(this.translator, arguments);
+	  };
+	
+	  I18n.prototype.setDefaultNamespace = function setDefaultNamespace(ns) {
+	    this.options.defaultNS = ns;
+	  };
+	
+	  I18n.prototype.loadNamespaces = function loadNamespaces(ns, callback) {
+	    var _this6 = this;
+	
+	    if (!this.options.ns) return callback && callback();
+	    if (typeof ns === 'string') ns = [ns];
+	
+	    ns.forEach(function (n) {
+	      if (_this6.options.ns.indexOf(n) < 0) _this6.options.ns.push(n);
+	    });
+	
+	    this.loadResources(callback);
+	  };
+	
+	  I18n.prototype.loadLanguages = function loadLanguages(lngs, callback) {
+	    if (typeof lngs === 'string') lngs = [lngs];
+	    var preloaded = this.options.preload || [];
+	
+	    var newLngs = lngs.filter(function (lng) {
+	      return preloaded.indexOf(lng) < 0;
+	    });
+	    // Exit early if all given languages are already preloaded
+	    if (!newLngs.length) return callback();
+	
+	    this.options.preload = preloaded.concat(newLngs);
+	    this.loadResources(callback);
+	  };
+	
+	  I18n.prototype.dir = function dir(lng) {
+	    if (!lng) lng = this.language;
+	    if (!lng) return 'rtl';
+	
+	    var rtlLngs = ['ar', 'shu', 'sqr', 'ssh', 'xaa', 'yhd', 'yud', 'aao', 'abh', 'abv', 'acm', 'acq', 'acw', 'acx', 'acy', 'adf', 'ads', 'aeb', 'aec', 'afb', 'ajp', 'apc', 'apd', 'arb', 'arq', 'ars', 'ary', 'arz', 'auz', 'avl', 'ayh', 'ayl', 'ayn', 'ayp', 'bbz', 'pga', 'he', 'iw', 'ps', 'pbt', 'pbu', 'pst', 'prp', 'prd', 'ur', 'ydd', 'yds', 'yih', 'ji', 'yi', 'hbo', 'men', 'xmn', 'fa', 'jpr', 'peo', 'pes', 'prs', 'dv', 'sam'];
+	
+	    return rtlLngs.indexOf(this.services.languageUtils.getLanguagePartFromCode(lng)) >= 0 ? 'rtl' : 'ltr';
+	  };
+	
+	  I18n.prototype.createInstance = function createInstance() {
+	    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+	    var callback = arguments[1];
+	
+	    return new I18n(options, callback);
+	  };
+	
+	  I18n.prototype.cloneInstance = function cloneInstance() {
+	    var _this7 = this;
+	
+	    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+	    var callback = arguments[1];
+	
+	    var clone = new I18n(_extends({}, options, this.options, { isClone: true }), callback);
+	    var membersToCopy = ['store', 'translator', 'services', 'language'];
+	    membersToCopy.forEach(function (m) {
+	      clone[m] = _this7[m];
+	    });
+	
+	    return clone;
+	  };
+	
+	  return I18n;
+	}(_EventEmitter3.default);
+	
+	exports.default = new I18n();
+
+/***/ },
+/* 58 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var consoleLogger = {
+	  type: 'logger',
+	
+	  log: function log(args) {
+	    this._output('log', args);
+	  },
+	  warn: function warn(args) {
+	    this._output('warn', args);
+	  },
+	  error: function error(args) {
+	    this._output('error', args);
+	  },
+	  _output: function _output(type, args) {
+	    if (console && console[type]) console[type].apply(console, Array.prototype.slice.call(args));
+	  }
+	};
+	
+	var Logger = function () {
+	  function Logger(concreteLogger) {
+	    var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+	
+	    _classCallCheck(this, Logger);
+	
+	    this.subs = [];
+	    this.init(concreteLogger, options);
+	  }
+	
+	  Logger.prototype.init = function init(concreteLogger) {
+	    var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+	
+	    this.prefix = options.prefix || 'i18next:';
+	    this.logger = concreteLogger || consoleLogger;
+	    this.options = options;
+	    this.debug = options.debug === false ? false : true;
+	  };
+	
+	  Logger.prototype.setDebug = function setDebug(bool) {
+	    this.debug = bool;
+	    this.subs.forEach(function (sub) {
+	      sub.setDebug(bool);
+	    });
+	  };
+	
+	  Logger.prototype.log = function log() {
+	    this.forward(arguments, 'log', '', true);
+	  };
+	
+	  Logger.prototype.warn = function warn() {
+	    this.forward(arguments, 'warn', '', true);
+	  };
+	
+	  Logger.prototype.error = function error() {
+	    this.forward(arguments, 'error', '');
+	  };
+	
+	  Logger.prototype.deprecate = function deprecate() {
+	    this.forward(arguments, 'warn', 'WARNING DEPRECATED: ', true);
+	  };
+	
+	  Logger.prototype.forward = function forward(args, lvl, prefix, debugOnly) {
+	    if (debugOnly && !this.debug) return;
+	    if (typeof args[0] === 'string') args[0] = prefix + this.prefix + ' ' + args[0];
+	    this.logger[lvl](args);
+	  };
+	
+	  Logger.prototype.create = function create(moduleName) {
+	    var sub = new Logger(this.logger, _extends({ prefix: this.prefix + ':' + moduleName + ':' }, this.options));
+	    this.subs.push(sub);
+	
+	    return sub;
+	  };
+	
+	  // createInstance(options = {}) {
+	  //   return new Logger(options, callback);
+	  // }
+	
+	  return Logger;
+	}();
+	
+	;
+	
+	exports.default = new Logger();
+
+/***/ },
+/* 59 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var EventEmitter = function () {
+		function EventEmitter() {
+			_classCallCheck(this, EventEmitter);
+	
+			this.observers = {};
+		}
+	
+		EventEmitter.prototype.on = function on(events, listener) {
+			var _this = this;
+	
+			events.split(' ').forEach(function (event) {
+				_this.observers[event] = _this.observers[event] || [];
+				_this.observers[event].push(listener);
+			});
+		};
+	
+		EventEmitter.prototype.off = function off(event, listener) {
+			var _this2 = this;
+	
+			if (!this.observers[event]) {
+				return;
+			}
+	
+			this.observers[event].forEach(function () {
+				if (!listener) {
+					delete _this2.observers[event];
+				} else {
+					var index = _this2.observers[event].indexOf(listener);
+					if (index > -1) {
+						_this2.observers[event].splice(index, 1);
+					}
+				}
+			});
+		};
+	
+		EventEmitter.prototype.emit = function emit(event) {
+			for (var _len = arguments.length, args = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
+				args[_key - 1] = arguments[_key];
+			}
+	
+			if (this.observers[event]) {
+				this.observers[event].forEach(function (observer) {
+					observer.apply(undefined, args);
+				});
+			}
+	
+			if (this.observers['*']) {
+				this.observers['*'].forEach(function (observer) {
+					var _ref;
+	
+					observer.apply(observer, (_ref = [event]).concat.apply(_ref, args));
+				});
+			}
+		};
+	
+		return EventEmitter;
+	}();
+	
+	exports.default = EventEmitter;
+
+/***/ },
+/* 60 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+	
+	var _EventEmitter2 = __webpack_require__(59);
+	
+	var _EventEmitter3 = _interopRequireDefault(_EventEmitter2);
+	
+	var _utils = __webpack_require__(61);
+	
+	var utils = _interopRequireWildcard(_utils);
+	
+	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _defaults(obj, defaults) { var keys = Object.getOwnPropertyNames(defaults); for (var i = 0; i < keys.length; i++) { var key = keys[i]; var value = Object.getOwnPropertyDescriptor(defaults, key); if (value && value.configurable && obj[key] === undefined) { Object.defineProperty(obj, key, value); } } return obj; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : _defaults(subClass, superClass); }
+	
+	var ResourceStore = function (_EventEmitter) {
+	  _inherits(ResourceStore, _EventEmitter);
+	
+	  function ResourceStore() {
+	    var data = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+	    var options = arguments.length <= 1 || arguments[1] === undefined ? { ns: ['translation'], defaultNS: 'translation' } : arguments[1];
+	
+	    _classCallCheck(this, ResourceStore);
+	
+	    var _this = _possibleConstructorReturn(this, _EventEmitter.call(this));
+	
+	    _this.data = data;
+	    _this.options = options;
+	    return _this;
+	  }
+	
+	  ResourceStore.prototype.addNamespaces = function addNamespaces(ns) {
+	    if (this.options.ns.indexOf(ns) < 0) {
+	      this.options.ns.push(ns);
+	    }
+	  };
+	
+	  ResourceStore.prototype.removeNamespaces = function removeNamespaces(ns) {
+	    var index = this.options.ns.indexOf(ns);
+	    if (index > -1) {
+	      this.options.ns.splice(index, 1);
+	    }
+	  };
+	
+	  ResourceStore.prototype.getResource = function getResource(lng, ns, key) {
+	    var options = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
+	
+	    var keySeparator = options.keySeparator || this.options.keySeparator;
+	    if (keySeparator === undefined) keySeparator = '.';
+	
+	    var path = [lng, ns];
+	    if (key && typeof key !== 'string') path = path.concat(key);
+	    if (key && typeof key === 'string') path = path.concat(keySeparator ? key.split(keySeparator) : key);
+	
+	    if (lng.indexOf('.') > -1) {
+	      path = lng.split('.');
+	    }
+	
+	    return utils.getPath(this.data, path);
+	  };
+	
+	  ResourceStore.prototype.addResource = function addResource(lng, ns, key, value) {
+	    var options = arguments.length <= 4 || arguments[4] === undefined ? { silent: false } : arguments[4];
+	
+	    var keySeparator = this.options.keySeparator;
+	    if (keySeparator === undefined) keySeparator = '.';
+	
+	    var path = [lng, ns];
+	    if (key) path = path.concat(keySeparator ? key.split(keySeparator) : key);
+	
+	    if (lng.indexOf('.') > -1) {
+	      path = lng.split('.');
+	      value = ns;
+	      ns = path[1];
+	    }
+	
+	    this.addNamespaces(ns);
+	
+	    utils.setPath(this.data, path, value);
+	
+	    if (!options.silent) this.emit('added', lng, ns, key, value);
+	  };
+	
+	  ResourceStore.prototype.addResources = function addResources(lng, ns, resources) {
+	    for (var m in resources) {
+	      if (typeof resources[m] === 'string') this.addResource(lng, ns, m, resources[m], { silent: true });
+	    }
+	    this.emit('added', lng, ns, resources);
+	  };
+	
+	  ResourceStore.prototype.addResourceBundle = function addResourceBundle(lng, ns, resources, deep, overwrite) {
+	    var path = [lng, ns];
+	    if (lng.indexOf('.') > -1) {
+	      path = lng.split('.');
+	      deep = resources;
+	      resources = ns;
+	      ns = path[1];
+	    }
+	
+	    this.addNamespaces(ns);
+	
+	    var pack = utils.getPath(this.data, path) || {};
+	
+	    if (deep) {
+	      utils.deepExtend(pack, resources, overwrite);
+	    } else {
+	      pack = _extends({}, pack, resources);
+	    }
+	
+	    utils.setPath(this.data, path, pack);
+	
+	    this.emit('added', lng, ns, resources);
+	  };
+	
+	  ResourceStore.prototype.removeResourceBundle = function removeResourceBundle(lng, ns) {
+	    if (this.hasResourceBundle(lng, ns)) {
+	      delete this.data[lng][ns];
+	    }
+	    this.removeNamespaces(ns);
+	
+	    this.emit('removed', lng, ns);
+	  };
+	
+	  ResourceStore.prototype.hasResourceBundle = function hasResourceBundle(lng, ns) {
+	    return this.getResource(lng, ns) !== undefined;
+	  };
+	
+	  ResourceStore.prototype.getResourceBundle = function getResourceBundle(lng, ns) {
+	    if (!ns) ns = this.options.defaultNS;
+	
+	    // TODO: COMPATIBILITY remove extend in v2.1.0
+	    if (this.options.compatibilityAPI === 'v1') return _extends({}, this.getResource(lng, ns));
+	
+	    return this.getResource(lng, ns);
+	  };
+	
+	  ResourceStore.prototype.toJSON = function toJSON() {
+	    return this.data;
+	  };
+	
+	  return ResourceStore;
+	}(_EventEmitter3.default);
+	
+	exports.default = ResourceStore;
+
+/***/ },
+/* 61 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.makeString = makeString;
+	exports.copy = copy;
+	exports.setPath = setPath;
+	exports.pushPath = pushPath;
+	exports.getPath = getPath;
+	exports.deepExtend = deepExtend;
+	exports.regexEscape = regexEscape;
+	exports.escape = escape;
+	function makeString(object) {
+	  if (object == null) return '';
+	  return '' + object;
+	}
+	
+	function copy(a, s, t) {
+	  a.forEach(function (m) {
+	    if (s[m]) t[m] = s[m];
+	  });
+	}
+	
+	function getLastOfPath(object, path, Empty) {
+	  function cleanKey(key) {
+	    return key && key.indexOf('###') > -1 ? key.replace(/###/g, '.') : key;
+	  }
+	
+	  var stack = typeof path !== 'string' ? [].concat(path) : path.split('.');
+	  while (stack.length > 1) {
+	    if (!object) return {};
+	
+	    var key = cleanKey(stack.shift());
+	    if (!object[key] && Empty) object[key] = new Empty();
+	    object = object[key];
+	  }
+	
+	  if (!object) return {};
+	  return {
+	    obj: object,
+	    k: cleanKey(stack.shift())
+	  };
+	}
+	
+	function setPath(object, path, newValue) {
+	  var _getLastOfPath = getLastOfPath(object, path, Object);
+	
+	  var obj = _getLastOfPath.obj;
+	  var k = _getLastOfPath.k;
+	
+	
+	  obj[k] = newValue;
+	}
+	
+	function pushPath(object, path, newValue, concat) {
+	  var _getLastOfPath2 = getLastOfPath(object, path, Object);
+	
+	  var obj = _getLastOfPath2.obj;
+	  var k = _getLastOfPath2.k;
+	
+	
+	  obj[k] = obj[k] || [];
+	  if (concat) obj[k] = obj[k].concat(newValue);
+	  if (!concat) obj[k].push(newValue);
+	}
+	
+	function getPath(object, path) {
+	  var _getLastOfPath3 = getLastOfPath(object, path);
+	
+	  var obj = _getLastOfPath3.obj;
+	  var k = _getLastOfPath3.k;
+	
+	
+	  if (!obj) return undefined;
+	  return obj[k];
+	}
+	
+	function deepExtend(target, source, overwrite) {
+	  for (var prop in source) {
+	    if (prop in target) {
+	      // If we reached a leaf string in target or source then replace with source or skip depending on the 'overwrite' switch
+	      if (typeof target[prop] === 'string' || target[prop] instanceof String || typeof source[prop] === 'string' || source[prop] instanceof String) {
+	        if (overwrite) target[prop] = source[prop];
+	      } else {
+	        deepExtend(target[prop], source[prop], overwrite);
+	      }
+	    } else {
+	      target[prop] = source[prop];
+	    }
+	  }return target;
+	}
+	
+	function regexEscape(str) {
+	  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, '\\$&');
+	}
+	
+	/* eslint-disable */
+	var _entityMap = {
+	  "&": "&amp;",
+	  "<": "&lt;",
+	  ">": "&gt;",
+	  '"': '&quot;',
+	  "'": '&#39;',
+	  "/": '&#x2F;'
+	};
+	/* eslint-enable */
+	
+	function escape(data) {
+	  if (typeof data === 'string') {
+	    return data.replace(/[&<>"'\/]/g, function (s) {
+	      return _entityMap[s];
+	    });
+	  } else {
+	    return data;
+	  }
+	}
+
+/***/ },
+/* 62 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+	
+	var _logger = __webpack_require__(58);
+	
+	var _logger2 = _interopRequireDefault(_logger);
+	
+	var _EventEmitter2 = __webpack_require__(59);
+	
+	var _EventEmitter3 = _interopRequireDefault(_EventEmitter2);
+	
+	var _postProcessor = __webpack_require__(63);
+	
+	var _postProcessor2 = _interopRequireDefault(_postProcessor);
+	
+	var _v = __webpack_require__(64);
+	
+	var compat = _interopRequireWildcard(_v);
+	
+	var _utils = __webpack_require__(61);
+	
+	var utils = _interopRequireWildcard(_utils);
+	
+	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _defaults(obj, defaults) { var keys = Object.getOwnPropertyNames(defaults); for (var i = 0; i < keys.length; i++) { var key = keys[i]; var value = Object.getOwnPropertyDescriptor(defaults, key); if (value && value.configurable && obj[key] === undefined) { Object.defineProperty(obj, key, value); } } return obj; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : _defaults(subClass, superClass); }
+	
+	var Translator = function (_EventEmitter) {
+	  _inherits(Translator, _EventEmitter);
+	
+	  function Translator(services) {
+	    var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+	
+	    _classCallCheck(this, Translator);
+	
+	    var _this = _possibleConstructorReturn(this, _EventEmitter.call(this));
+	
+	    utils.copy(['resourceStore', 'languageUtils', 'pluralResolver', 'interpolator', 'backendConnector'], services, _this);
+	
+	    _this.options = options;
+	    _this.logger = _logger2.default.create('translator');
+	    return _this;
+	  }
+	
+	  Translator.prototype.changeLanguage = function changeLanguage(lng) {
+	    if (lng) this.language = lng;
+	  };
+	
+	  Translator.prototype.exists = function exists(key) {
+	    var options = arguments.length <= 1 || arguments[1] === undefined ? { interpolation: {} } : arguments[1];
+	
+	    if (this.options.compatibilityAPI === 'v1') {
+	      options = compat.convertTOptions(options);
+	    }
+	
+	    return this.resolve(key, options) !== undefined;
+	  };
+	
+	  Translator.prototype.extractFromKey = function extractFromKey(key, options) {
+	    var nsSeparator = options.nsSeparator || this.options.nsSeparator;
+	    if (nsSeparator === undefined) nsSeparator = ':';
+	
+	    var namespaces = options.ns || this.options.defaultNS;
+	    if (nsSeparator && key.indexOf(nsSeparator) > -1) {
+	      var parts = key.split(nsSeparator);
+	      namespaces = parts[0];
+	      key = parts[1];
+	    }
+	    if (typeof namespaces === 'string') namespaces = [namespaces];
+	
+	    return {
+	      key: key,
+	      namespaces: namespaces
+	    };
+	  };
+	
+	  Translator.prototype.translate = function translate(keys) {
+	    var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+	
+	    if ((typeof options === 'undefined' ? 'undefined' : _typeof(options)) !== 'object') {
+	      options = this.options.overloadTranslationOptionHandler(arguments);
+	    } else if (this.options.compatibilityAPI === 'v1') {
+	      options = compat.convertTOptions(options);
+	    }
+	
+	    // non valid keys handling
+	    if (keys === undefined || keys === null || keys === '') return '';
+	    if (typeof keys === 'number') keys = String(keys);
+	    if (typeof keys === 'string') keys = [keys];
+	
+	    // return key on CIMode
+	    var lng = options.lng || this.language;
+	    if (lng && lng.toLowerCase() === 'cimode') return keys[keys.length - 1];
+	
+	    // separators
+	    var keySeparator = options.keySeparator || this.options.keySeparator || '.';
+	
+	    // get namespace(s)
+	
+	    var _extractFromKey = this.extractFromKey(keys[keys.length - 1], options);
+	
+	    var key = _extractFromKey.key;
+	    var namespaces = _extractFromKey.namespaces;
+	
+	    var namespace = namespaces[namespaces.length - 1];
+	
+	    // resolve from store
+	    var res = this.resolve(keys, options);
+	
+	    var resType = Object.prototype.toString.apply(res);
+	    var noObject = ['[object Number]', '[object Function]', '[object RegExp]'];
+	    var joinArrays = options.joinArrays !== undefined ? options.joinArrays : this.options.joinArrays;
+	
+	    // object
+	    if (res && typeof res !== 'string' && noObject.indexOf(resType) < 0 && !(joinArrays && resType === '[object Array]')) {
+	      if (!options.returnObjects && !this.options.returnObjects) {
+	        this.logger.warn('accessing an object - but returnObjects options is not enabled!');
+	        return this.options.returnedObjectHandler ? this.options.returnedObjectHandler(key, res, options) : 'key \'' + key + ' (' + this.language + ')\' returned an object instead of string.';
+	      }
+	
+	      var copy = resType === '[object Array]' ? [] : {}; // apply child translation on a copy
+	
+	      for (var m in res) {
+	        copy[m] = this.translate('' + key + keySeparator + m, _extends({ joinArrays: false, ns: namespaces }, options));
+	      }
+	      res = copy;
+	    }
+	    // array special treatment
+	    else if (joinArrays && resType === '[object Array]') {
+	        res = res.join(joinArrays);
+	        if (res) res = this.extendTranslation(res, key, options);
+	      }
+	      // string, empty or null
+	      else {
+	          var usedDefault = false,
+	              usedKey = false;
+	
+	          // fallback value
+	          if (!this.isValidLookup(res) && options.defaultValue !== undefined) {
+	            usedDefault = true;
+	            res = options.defaultValue;
+	          }
+	          if (!this.isValidLookup(res)) {
+	            usedKey = true;
+	            res = key;
+	          }
+	
+	          // save missing
+	          if (usedKey || usedDefault) {
+	            this.logger.log('missingKey', lng, namespace, key, res);
+	
+	            var lngs = [];
+	            if (this.options.saveMissingTo === 'fallback' && this.options.fallbackLng && this.options.fallbackLng[0]) {
+	              for (var i = 0; i < this.options.fallbackLng.length; i++) {
+	                lngs.push(this.options.fallbackLng[i]);
+	              }
+	            } else if (this.options.saveMissingTo === 'all') {
+	              lngs = this.languageUtils.toResolveHierarchy(options.lng || this.language);
+	            } else {
+	              //(this.options.saveMissingTo === 'current' || (this.options.saveMissingTo === 'fallback' && this.options.fallbackLng[0] === false) ) {
+	              lngs.push(options.lng || this.language);
+	            }
+	
+	            if (this.options.saveMissing) {
+	              if (this.options.missingKeyHandler) {
+	                this.options.missingKeyHandler(lngs, namespace, key, res);
+	              } else if (this.backendConnector && this.backendConnector.saveMissing) {
+	                this.backendConnector.saveMissing(lngs, namespace, key, res);
+	              }
+	            }
+	
+	            this.emit('missingKey', lngs, namespace, key, res);
+	          }
+	
+	          // extend
+	          res = this.extendTranslation(res, key, options);
+	
+	          // append namespace if still key
+	          if (usedKey && res === key && this.options.appendNamespaceToMissingKey) res = namespace + ':' + key;
+	
+	          // parseMissingKeyHandler
+	          if (usedKey && this.options.parseMissingKeyHandler) res = this.options.parseMissingKeyHandler(res);
+	        }
+	
+	    // return
+	    return res;
+	  };
+	
+	  Translator.prototype.extendTranslation = function extendTranslation(res, key, options) {
+	    var _this2 = this;
+	
+	    if (options.interpolation) this.interpolator.init(options);
+	
+	    // interpolate
+	    var data = options.replace && typeof options.replace !== 'string' ? options.replace : options;
+	    if (this.options.interpolation.defaultVariables) data = _extends({}, this.options.interpolation.defaultVariables, data);
+	    res = this.interpolator.interpolate(res, data, this.language);
+	
+	    // nesting
+	    res = this.interpolator.nest(res, function () {
+	      for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+	        args[_key] = arguments[_key];
+	      }
+	
+	      return _this2.translate.apply(_this2, args);
+	    }, options);
+	
+	    if (options.interpolation) this.interpolator.reset();
+	
+	    // post process
+	    var postProcess = options.postProcess || this.options.postProcess;
+	    var postProcessorNames = typeof postProcess === 'string' ? [postProcess] : postProcess;
+	
+	    if (res !== undefined && postProcessorNames && postProcessorNames.length && options.applyPostProcessor !== false) {
+	      res = _postProcessor2.default.handle(postProcessorNames, res, key, options, this);
+	    }
+	
+	    return res;
+	  };
+	
+	  Translator.prototype.resolve = function resolve(keys) {
+	    var _this3 = this;
+	
+	    var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+	
+	    var found = void 0;
+	
+	    if (typeof keys === 'string') keys = [keys];
+	
+	    // forEach possible key
+	    keys.forEach(function (k) {
+	      if (_this3.isValidLookup(found)) return;
+	
+	      var _extractFromKey2 = _this3.extractFromKey(k, options);
+	
+	      var key = _extractFromKey2.key;
+	      var namespaces = _extractFromKey2.namespaces;
+	
+	      if (_this3.options.fallbackNS) namespaces = namespaces.concat(_this3.options.fallbackNS);
+	
+	      var needsPluralHandling = options.count !== undefined && typeof options.count !== 'string';
+	      var needsContextHandling = options.context !== undefined && typeof options.context === 'string' && options.context !== '';
+	
+	      var codes = options.lngs ? options.lngs : _this3.languageUtils.toResolveHierarchy(options.lng || _this3.language);
+	
+	      namespaces.forEach(function (ns) {
+	        if (_this3.isValidLookup(found)) return;
+	
+	        codes.forEach(function (code) {
+	          if (_this3.isValidLookup(found)) return;
+	
+	          var finalKey = key;
+	          var finalKeys = [finalKey];
+	
+	          var pluralSuffix = void 0;
+	          if (needsPluralHandling) pluralSuffix = _this3.pluralResolver.getSuffix(code, options.count);
+	
+	          // fallback for plural if context not found
+	          if (needsPluralHandling && needsContextHandling) finalKeys.push(finalKey + pluralSuffix);
+	
+	          // get key for context if needed
+	          if (needsContextHandling) finalKeys.push(finalKey += '' + _this3.options.contextSeparator + options.context);
+	
+	          // get key for plural if needed
+	          if (needsPluralHandling) finalKeys.push(finalKey += pluralSuffix);
+	
+	          // iterate over finalKeys starting with most specific pluralkey (-> contextkey only) -> singularkey only
+	          var possibleKey = void 0;
+	          while (possibleKey = finalKeys.pop()) {
+	            if (_this3.isValidLookup(found)) continue;
+	            found = _this3.getResource(code, ns, possibleKey, options);
+	          }
+	        });
+	      });
+	    });
+	
+	    return found;
+	  };
+	
+	  Translator.prototype.isValidLookup = function isValidLookup(res) {
+	    return res !== undefined && !(!this.options.returnNull && res === null) && !(!this.options.returnEmptyString && res === '');
+	  };
+	
+	  Translator.prototype.getResource = function getResource(code, ns, key) {
+	    var options = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
+	
+	    return this.resourceStore.getResource(code, ns, key, options);
+	  };
+	
+	  return Translator;
+	}(_EventEmitter3.default);
+	
+	exports.default = Translator;
+
+/***/ },
+/* 63 */
+/***/ function(module, exports) {
+
+	"use strict";
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.default = {
+	
+	  processors: {},
+	
+	  addPostProcessor: function addPostProcessor(module) {
+	    this.processors[module.name] = module;
+	  },
+	  handle: function handle(processors, value, key, options, translator) {
+	    var _this = this;
+	
+	    processors.forEach(function (processor) {
+	      if (_this.processors[processor]) value = _this.processors[processor].process(value, key, options, translator);
+	    });
+	
+	    return value;
+	  }
+	};
+
+/***/ },
+/* 64 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.convertAPIOptions = convertAPIOptions;
+	exports.convertJSONOptions = convertJSONOptions;
+	exports.convertTOptions = convertTOptions;
+	exports.appendBackwardsAPI = appendBackwardsAPI;
+	
+	var _logger = __webpack_require__(58);
+	
+	var _logger2 = _interopRequireDefault(_logger);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function convertInterpolation(options) {
+	
+	  options.interpolation = {
+	    unescapeSuffix: 'HTML'
+	  };
+	
+	  options.interpolation.prefix = options.interpolationPrefix || '__';
+	  options.interpolation.suffix = options.interpolationSuffix || '__';
+	  options.interpolation.escapeValue = options.escapeInterpolation || false;
+	
+	  options.interpolation.nestingPrefix = options.reusePrefix || '$t(';
+	  options.interpolation.nestingSuffix = options.reuseSuffix || ')';
+	
+	  return options;
+	}
+	
+	function convertAPIOptions(options) {
+	  if (options.resStore) options.resources = options.resStore;
+	
+	  if (options.ns && options.ns.defaultNs) {
+	    options.defaultNS = options.ns.defaultNs;
+	    options.ns = options.ns.namespaces;
+	  } else {
+	    options.defaultNS = options.ns || 'translation';
+	  }
+	
+	  if (options.fallbackToDefaultNS && options.defaultNS) options.fallbackNS = options.defaultNS;
+	
+	  options.saveMissing = options.sendMissing;
+	  options.saveMissingTo = options.sendMissingTo || 'current';
+	  options.returnNull = options.fallbackOnNull ? false : true;
+	  options.returnEmptyString = options.fallbackOnEmpty ? false : true;
+	  options.returnObjects = options.returnObjectTrees;
+	  options.joinArrays = '\n';
+	
+	  options.returnedObjectHandler = options.objectTreeKeyHandler;
+	  options.parseMissingKeyHandler = options.parseMissingKey;
+	  options.appendNamespaceToMissingKey = true;
+	
+	  options.nsSeparator = options.nsseparator;
+	  options.keySeparator = options.keyseparator;
+	
+	  if (options.shortcutFunction === 'sprintf') {
+	    options.overloadTranslationOptionHandler = function (args) {
+	      var values = [];
+	
+	      for (var i = 1; i < args.length; i++) {
+	        values.push(args[i]);
+	      }
+	
+	      return {
+	        postProcess: 'sprintf',
+	        sprintf: values
+	      };
+	    };
+	  }
+	
+	  options.whitelist = options.lngWhitelist;
+	  options.preload = options.preload;
+	  if (options.load === 'current') options.load = 'currentOnly';
+	  if (options.load === 'unspecific') options.load = 'languageOnly';
+	
+	  // backend
+	  options.backend = options.backend || {};
+	  options.backend.loadPath = options.resGetPath || 'locales/__lng__/__ns__.json';
+	  options.backend.addPath = options.resPostPath || 'locales/add/__lng__/__ns__';
+	  options.backend.allowMultiLoading = options.dynamicLoad;
+	
+	  // cache
+	  options.cache = options.cache || {};
+	  options.cache.prefix = 'res_';
+	  options.cache.expirationTime = 7 * 24 * 60 * 60 * 1000;
+	  options.cache.enabled = options.useLocalStorage ? true : false;
+	
+	  options = convertInterpolation(options);
+	  if (options.defaultVariables) options.interpolation.defaultVariables = options.defaultVariables;
+	
+	  // TODO: deprecation
+	  // if (options.getAsync === false) throw deprecation error
+	
+	  return options;
+	}
+	
+	function convertJSONOptions(options) {
+	  options = convertInterpolation(options);
+	  options.joinArrays = '\n';
+	
+	  return options;
+	}
+	
+	function convertTOptions(options) {
+	  if (options.interpolationPrefix || options.interpolationSuffix || options.escapeInterpolation) {
+	    options = convertInterpolation(options);
+	  }
+	
+	  options.nsSeparator = options.nsseparator;
+	  options.keySeparator = options.keyseparator;
+	
+	  options.returnObjects = options.returnObjectTrees;
+	
+	  return options;
+	}
+	
+	function appendBackwardsAPI(i18n) {
+	  i18n.lng = function () {
+	    _logger2.default.deprecate('i18next.lng() can be replaced by i18next.language for detected language or i18next.languages for languages ordered by translation lookup.');
+	    return i18n.services.languageUtils.toResolveHierarchy(i18n.language)[0];
+	  };
+	
+	  i18n.preload = function (lngs, cb) {
+	    _logger2.default.deprecate('i18next.preload() can be replaced with i18next.loadLanguages()');
+	    i18n.loadLanguages(lngs, cb);
+	  };
+	
+	  i18n.setLng = function (lng, options, callback) {
+	    _logger2.default.deprecate('i18next.setLng() can be replaced with i18next.changeLanguage() or i18next.getFixedT() to get a translation function with fixed language or namespace.');
+	    if (typeof options === 'function') {
+	      callback = options;
+	      options = {};
+	    }
+	    if (!options) options = {};
+	
+	    if (options.fixLng === true) {
+	      if (callback) return callback(null, i18n.getFixedT(lng));
+	    }
+	
+	    i18n.changeLanguage(lng, callback);
+	  };
+	
+	  i18n.addPostProcessor = function (name, fc) {
+	    _logger2.default.deprecate('i18next.addPostProcessor() can be replaced by i18next.use({ type: \'postProcessor\', name: \'name\', process: fc })');
+	    i18n.use({
+	      type: 'postProcessor',
+	      name: name,
+	      process: fc
+	    });
+	  };
+	}
+
+/***/ },
+/* 65 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _logger = __webpack_require__(58);
+	
+	var _logger2 = _interopRequireDefault(_logger);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function capitalize(string) {
+	  return string.charAt(0).toUpperCase() + string.slice(1);
+	}
+	
+	var LanguageUtil = function () {
+	  function LanguageUtil(options) {
+	    _classCallCheck(this, LanguageUtil);
+	
+	    this.options = options;
+	
+	    this.whitelist = this.options.whitelist || false;
+	    this.logger = _logger2.default.create('languageUtils');
+	  }
+	
+	  LanguageUtil.prototype.getLanguagePartFromCode = function getLanguagePartFromCode(code) {
+	    if (code.indexOf('-') < 0) return code;
+	
+	    var specialCases = ['NB-NO', 'NN-NO', 'nb-NO', 'nn-NO', 'nb-no', 'nn-no'];
+	    var p = code.split('-');
+	    return this.formatLanguageCode(specialCases.indexOf(code) > -1 ? p[1].toLowerCase() : p[0]);
+	  };
+	
+	  LanguageUtil.prototype.formatLanguageCode = function formatLanguageCode(code) {
+	    // http://www.iana.org/assignments/language-tags/language-tags.xhtml
+	    if (typeof code === 'string' && code.indexOf('-') > -1) {
+	      var specialCases = ['hans', 'hant', 'latn', 'cyrl', 'cans', 'mong', 'arab'];
+	      var p = code.split('-');
+	
+	      if (this.options.lowerCaseLng) {
+	        p = p.map(function (part) {
+	          return part.toLowerCase();
+	        });
+	      } else if (p.length === 2) {
+	        p[0] = p[0].toLowerCase();
+	        p[1] = p[1].toUpperCase();
+	
+	        if (specialCases.indexOf(p[1].toLowerCase()) > -1) p[1] = capitalize(p[1].toLowerCase());
+	      } else if (p.length === 3) {
+	        p[0] = p[0].toLowerCase();
+	
+	        // if lenght 2 guess it's a country
+	        if (p[1].length === 2) p[1] = p[1].toUpperCase();
+	        if (p[0] !== 'sgn' && p[2].length === 2) p[2] = p[2].toUpperCase();
+	
+	        if (specialCases.indexOf(p[1].toLowerCase()) > -1) p[1] = capitalize(p[1].toLowerCase());
+	        if (specialCases.indexOf(p[2].toLowerCase()) > -1) p[2] = capitalize(p[2].toLowerCase());
+	      }
+	
+	      return p.join('-');
+	    } else {
+	      return this.options.cleanCode || this.options.lowerCaseLng ? code.toLowerCase() : code;
+	    }
+	  };
+	
+	  LanguageUtil.prototype.isWhitelisted = function isWhitelisted(code, exactMatch) {
+	    if (this.options.load === 'languageOnly' || this.options.nonExplicitWhitelist && !exactMatch) {
+	      code = this.getLanguagePartFromCode(code);
+	    }
+	    return !this.whitelist || !this.whitelist.length || this.whitelist.indexOf(code) > -1 ? true : false;
+	  };
+	
+	  LanguageUtil.prototype.toResolveHierarchy = function toResolveHierarchy(code, fallbackCode) {
+	    var _this = this;
+	
+	    fallbackCode = fallbackCode || this.options.fallbackLng || [];
+	    if (typeof fallbackCode === 'string') fallbackCode = [fallbackCode];
+	
+	    var codes = [];
+	    var addCode = function addCode(code) {
+	      var exactMatch = arguments.length <= 1 || arguments[1] === undefined ? false : arguments[1];
+	
+	      if (_this.isWhitelisted(code, exactMatch)) {
+	        codes.push(code);
+	      } else {
+	        _this.logger.warn('rejecting non-whitelisted language code: ' + code);
+	      }
+	    };
+	
+	    if (typeof code === 'string' && code.indexOf('-') > -1) {
+	      if (this.options.load !== 'languageOnly') addCode(this.formatLanguageCode(code), true);
+	      if (this.options.load !== 'currentOnly') addCode(this.getLanguagePartFromCode(code));
+	    } else if (typeof code === 'string') {
+	      addCode(this.formatLanguageCode(code));
+	    }
+	
+	    fallbackCode.forEach(function (fc) {
+	      if (codes.indexOf(fc) < 0) addCode(_this.formatLanguageCode(fc));
+	    });
+	
+	    return codes;
+	  };
+	
+	  return LanguageUtil;
+	}();
+	
+	;
+	
+	exports.default = LanguageUtil;
+
+/***/ },
+/* 66 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+	
+	var _logger = __webpack_require__(58);
+	
+	var _logger2 = _interopRequireDefault(_logger);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	// definition http://translate.sourceforge.net/wiki/l10n/pluralforms
+	/* eslint-disable */
+	var sets = [{ lngs: ['ach', 'ak', 'am', 'arn', 'br', 'fil', 'gun', 'ln', 'mfe', 'mg', 'mi', 'oc', 'tg', 'ti', 'tr', 'uz', 'wa'], nr: [1, 2], fc: 1 }, { lngs: ['af', 'an', 'ast', 'az', 'bg', 'bn', 'ca', 'da', 'de', 'dev', 'el', 'en', 'eo', 'es', 'es_ar', 'et', 'eu', 'fi', 'fo', 'fur', 'fy', 'gl', 'gu', 'ha', 'he', 'hi', 'hu', 'hy', 'ia', 'it', 'kn', 'ku', 'lb', 'mai', 'ml', 'mn', 'mr', 'nah', 'nap', 'nb', 'ne', 'nl', 'nn', 'no', 'nso', 'pa', 'pap', 'pms', 'ps', 'pt', 'pt_br', 'rm', 'sco', 'se', 'si', 'so', 'son', 'sq', 'sv', 'sw', 'ta', 'te', 'tk', 'ur', 'yo'], nr: [1, 2], fc: 2 }, { lngs: ['ay', 'bo', 'cgg', 'fa', 'id', 'ja', 'jbo', 'ka', 'kk', 'km', 'ko', 'ky', 'lo', 'ms', 'sah', 'su', 'th', 'tt', 'ug', 'vi', 'wo', 'zh'], nr: [1], fc: 3 }, { lngs: ['be', 'bs', 'dz', 'hr', 'ru', 'sr', 'uk'], nr: [1, 2, 5], fc: 4 }, { lngs: ['ar'], nr: [0, 1, 2, 3, 11, 100], fc: 5 }, { lngs: ['cs', 'sk'], nr: [1, 2, 5], fc: 6 }, { lngs: ['csb', 'pl'], nr: [1, 2, 5], fc: 7 }, { lngs: ['cy'], nr: [1, 2, 3, 8], fc: 8 }, { lngs: ['fr'], nr: [1, 2], fc: 9 }, { lngs: ['ga'], nr: [1, 2, 3, 7, 11], fc: 10 }, { lngs: ['gd'], nr: [1, 2, 3, 20], fc: 11 }, { lngs: ['is'], nr: [1, 2], fc: 12 }, { lngs: ['jv'], nr: [0, 1], fc: 13 }, { lngs: ['kw'], nr: [1, 2, 3, 4], fc: 14 }, { lngs: ['lt'], nr: [1, 2, 10], fc: 15 }, { lngs: ['lv'], nr: [1, 2, 0], fc: 16 }, { lngs: ['mk'], nr: [1, 2], fc: 17 }, { lngs: ['mnk'], nr: [0, 1, 2], fc: 18 }, { lngs: ['mt'], nr: [1, 2, 11, 20], fc: 19 }, { lngs: ['or'], nr: [2, 1], fc: 2 }, { lngs: ['ro'], nr: [1, 2, 20], fc: 20 }, { lngs: ['sl'], nr: [5, 1, 2, 3], fc: 21 }];
+	
+	var _rulesPluralsTypes = {
+	  1: function _(n) {
+	    return Number(n > 1);
+	  },
+	  2: function _(n) {
+	    return Number(n != 1);
+	  },
+	  3: function _(n) {
+	    return 0;
+	  },
+	  4: function _(n) {
+	    return Number(n % 10 == 1 && n % 100 != 11 ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2);
+	  },
+	  5: function _(n) {
+	    return Number(n === 0 ? 0 : n == 1 ? 1 : n == 2 ? 2 : n % 100 >= 3 && n % 100 <= 10 ? 3 : n % 100 >= 11 ? 4 : 5);
+	  },
+	  6: function _(n) {
+	    return Number(n == 1 ? 0 : n >= 2 && n <= 4 ? 1 : 2);
+	  },
+	  7: function _(n) {
+	    return Number(n == 1 ? 0 : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2);
+	  },
+	  8: function _(n) {
+	    return Number(n == 1 ? 0 : n == 2 ? 1 : n != 8 && n != 11 ? 2 : 3);
+	  },
+	  9: function _(n) {
+	    return Number(n >= 2);
+	  },
+	  10: function _(n) {
+	    return Number(n == 1 ? 0 : n == 2 ? 1 : n < 7 ? 2 : n < 11 ? 3 : 4);
+	  },
+	  11: function _(n) {
+	    return Number(n == 1 || n == 11 ? 0 : n == 2 || n == 12 ? 1 : n > 2 && n < 20 ? 2 : 3);
+	  },
+	  12: function _(n) {
+	    return Number(n % 10 != 1 || n % 100 == 11);
+	  },
+	  13: function _(n) {
+	    return Number(n !== 0);
+	  },
+	  14: function _(n) {
+	    return Number(n == 1 ? 0 : n == 2 ? 1 : n == 3 ? 2 : 3);
+	  },
+	  15: function _(n) {
+	    return Number(n % 10 == 1 && n % 100 != 11 ? 0 : n % 10 >= 2 && (n % 100 < 10 || n % 100 >= 20) ? 1 : 2);
+	  },
+	  16: function _(n) {
+	    return Number(n % 10 == 1 && n % 100 != 11 ? 0 : n !== 0 ? 1 : 2);
+	  },
+	  17: function _(n) {
+	    return Number(n == 1 || n % 10 == 1 ? 0 : 1);
+	  },
+	  18: function _(n) {
+	    return Number(n == 0 ? 0 : n == 1 ? 1 : 2);
+	  },
+	  19: function _(n) {
+	    return Number(n == 1 ? 0 : n === 0 || n % 100 > 1 && n % 100 < 11 ? 1 : n % 100 > 10 && n % 100 < 20 ? 2 : 3);
+	  },
+	  20: function _(n) {
+	    return Number(n == 1 ? 0 : n === 0 || n % 100 > 0 && n % 100 < 20 ? 1 : 2);
+	  },
+	  21: function _(n) {
+	    return Number(n % 100 == 1 ? 1 : n % 100 == 2 ? 2 : n % 100 == 3 || n % 100 == 4 ? 3 : 0);
+	  }
+	};
+	/* eslint-enable */
+	
+	function createRules() {
+	  var l,
+	      rules = {};
+	  sets.forEach(function (set) {
+	    set.lngs.forEach(function (l) {
+	      return rules[l] = {
+	        numbers: set.nr,
+	        plurals: _rulesPluralsTypes[set.fc]
+	      };
+	    });
+	  });
+	  return rules;
+	}
+	
+	var PluralResolver = function () {
+	  function PluralResolver(languageUtils) {
+	    var options = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+	
+	    _classCallCheck(this, PluralResolver);
+	
+	    this.languageUtils = languageUtils;
+	    this.options = options;
+	
+	    this.logger = _logger2.default.create('pluralResolver');
+	
+	    this.rules = createRules();
+	  }
+	
+	  PluralResolver.prototype.addRule = function addRule(lng, obj) {
+	    this.rules[lng] = obj;
+	  };
+	
+	  PluralResolver.prototype.getRule = function getRule(code) {
+	    return this.rules[this.languageUtils.getLanguagePartFromCode(code)];
+	  };
+	
+	  PluralResolver.prototype.needsPlural = function needsPlural(code) {
+	    var rule = this.getRule(code);
+	
+	    return rule && rule.numbers.length <= 1 ? false : true;
+	  };
+	
+	  PluralResolver.prototype.getSuffix = function getSuffix(code, count) {
+	    var _this = this;
+	
+	    var rule = this.getRule(code);
+	
+	    if (rule) {
+	      var _ret = function () {
+	        if (rule.numbers.length === 1) return {
+	            v: ''
+	          }; // only singular
+	
+	        var idx = rule.noAbs ? rule.plurals(count) : rule.plurals(Math.abs(count));
+	        var suffix = rule.numbers[idx];
+	
+	        // special treatment for lngs only having singular and plural
+	        if (rule.numbers.length === 2 && rule.numbers[0] === 1) {
+	          if (suffix === 2) {
+	            suffix = 'plural';
+	          } else if (suffix === 1) {
+	            suffix = '';
+	          }
+	        }
+	
+	        var returnSuffix = function returnSuffix() {
+	          return _this.options.prepend && suffix.toString() ? _this.options.prepend + suffix.toString() : suffix.toString();
+	        };
+	
+	        // COMPATIBILITY JSON
+	        // v1
+	        if (_this.options.compatibilityJSON === 'v1') {
+	          if (suffix === 1) return {
+	              v: ''
+	            };
+	          if (typeof suffix === 'number') return {
+	              v: '_plural_' + suffix.toString()
+	            };
+	          return {
+	            v: returnSuffix()
+	          };
+	        }
+	        // v2
+	        else if (_this.options.compatibilityJSON === 'v2' || rule.numbers.length === 2 && rule.numbers[0] === 1) {
+	            return {
+	              v: returnSuffix()
+	            };
+	          }
+	          // v3 - gettext index
+	          else if (rule.numbers.length === 2 && rule.numbers[0] === 1) {
+	              return {
+	                v: returnSuffix()
+	              };
+	            }
+	        return {
+	          v: _this.options.prepend && idx.toString() ? _this.options.prepend + idx.toString() : idx.toString()
+	        };
+	      }();
+	
+	      if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+	    } else {
+	      this.logger.warn('no plural rule found for: ' + code);
+	      return '';
+	    }
+	  };
+	
+	  return PluralResolver;
+	}();
+	
+	;
+	
+	exports.default = PluralResolver;
+
+/***/ },
+/* 67 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _utils = __webpack_require__(61);
+	
+	var utils = _interopRequireWildcard(_utils);
+	
+	var _logger = __webpack_require__(58);
+	
+	var _logger2 = _interopRequireDefault(_logger);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	var Interpolator = function () {
+	  function Interpolator() {
+	    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+	
+	    _classCallCheck(this, Interpolator);
+	
+	    this.logger = _logger2.default.create('interpolator');
+	
+	    this.init(options, true);
+	  }
+	
+	  Interpolator.prototype.init = function init() {
+	    var options = arguments.length <= 0 || arguments[0] === undefined ? {} : arguments[0];
+	    var reset = arguments[1];
+	
+	    if (reset) {
+	      this.options = options;
+	      this.format = options.interpolation && options.interpolation.format || function (value) {
+	        return value;
+	      };
+	    }
+	    if (!options.interpolation) options.interpolation = { escapeValue: true };
+	
+	    var iOpts = options.interpolation;
+	
+	    this.escapeValue = iOpts.escapeValue;
+	
+	    this.prefix = iOpts.prefix ? utils.regexEscape(iOpts.prefix) : iOpts.prefixEscaped || '{{';
+	    this.suffix = iOpts.suffix ? utils.regexEscape(iOpts.suffix) : iOpts.suffixEscaped || '}}';
+	    this.formatSeparator = iOpts.formatSeparator ? utils.regexEscape(iOpts.formatSeparator) : iOpts.formatSeparator || ',';
+	
+	    this.unescapePrefix = iOpts.unescapeSuffix ? '' : iOpts.unescapePrefix || '-';
+	    this.unescapeSuffix = this.unescapePrefix ? '' : iOpts.unescapeSuffix || '';
+	
+	    this.nestingPrefix = iOpts.nestingPrefix ? utils.regexEscape(iOpts.nestingPrefix) : iOpts.nestingPrefixEscaped || utils.regexEscape('$t(');
+	    this.nestingSuffix = iOpts.nestingSuffix ? utils.regexEscape(iOpts.nestingSuffix) : iOpts.nestingSuffixEscaped || utils.regexEscape(')');
+	
+	    // the regexp
+	    var regexpStr = this.prefix + '(.+?)' + this.suffix;
+	    this.regexp = new RegExp(regexpStr, 'g');
+	
+	    var regexpUnescapeStr = this.prefix + this.unescapePrefix + '(.+?)' + this.unescapeSuffix + this.suffix;
+	    this.regexpUnescape = new RegExp(regexpUnescapeStr, 'g');
+	
+	    var nestingRegexpStr = this.nestingPrefix + '(.+?)' + this.nestingSuffix;
+	    this.nestingRegexp = new RegExp(nestingRegexpStr, 'g');
+	  };
+	
+	  Interpolator.prototype.reset = function reset() {
+	    if (this.options) this.init(this.options);
+	  };
+	
+	  Interpolator.prototype.interpolate = function interpolate(str, data, lng) {
+	    var _this = this;
+	
+	    var match = void 0,
+	        value = void 0;
+	
+	    function regexSafe(val) {
+	      return val.replace(/\$/g, '$$$$');
+	    }
+	
+	    var handleFormat = function handleFormat(key) {
+	      if (key.indexOf(_this.formatSeparator) < 0) return utils.getPath(data, key);
+	
+	      var p = key.split(_this.formatSeparator);
+	      var k = p.shift().trim();
+	      var f = p.join(_this.formatSeparator).trim();
+	
+	      return _this.format(utils.getPath(data, k), f, lng);
+	    };
+	
+	    // unescape if has unescapePrefix/Suffix
+	    while (match = this.regexpUnescape.exec(str)) {
+	      var _value = handleFormat(match[1].trim());
+	      str = str.replace(match[0], _value);
+	      this.regexpUnescape.lastIndex = 0;
+	    }
+	
+	    // regular escape on demand
+	    while (match = this.regexp.exec(str)) {
+	      value = handleFormat(match[1].trim());
+	      if (typeof value !== 'string') value = utils.makeString(value);
+	      if (!value) {
+	        this.logger.warn('missed to pass in variable ' + match[1] + ' for interpolating ' + str);
+	        value = '';
+	      }
+	      value = this.escapeValue ? regexSafe(utils.escape(value)) : regexSafe(value);
+	      str = str.replace(match[0], value);
+	      this.regexp.lastIndex = 0;
+	    }
+	    return str;
+	  };
+	
+	  Interpolator.prototype.nest = function nest(str, fc) {
+	    var options = arguments.length <= 2 || arguments[2] === undefined ? {} : arguments[2];
+	
+	    var match = void 0,
+	        value = void 0;
+	
+	    var clonedOptions = JSON.parse(JSON.stringify(options));
+	    clonedOptions.applyPostProcessor = false; // avoid post processing on nested lookup
+	
+	    function regexSafe(val) {
+	      return val.replace(/\$/g, '$$$$');
+	    }
+	
+	    // if value is something like "myKey": "lorem $(anotherKey, { "count": {{aValueInOptions}} })"
+	    function handleHasOptions(key) {
+	      if (key.indexOf(',') < 0) return key;
+	
+	      var p = key.split(',');
+	      key = p.shift();
+	      var optionsString = p.join(',');
+	      optionsString = this.interpolate(optionsString, clonedOptions);
+	
+	      try {
+	        clonedOptions = JSON.parse(optionsString);
+	      } catch (e) {
+	        this.logger.error('failed parsing options string in nesting for key ' + key, e);
+	      }
+	
+	      return key;
+	    }
+	
+	    // regular escape on demand
+	    while (match = this.nestingRegexp.exec(str)) {
+	      value = fc(handleHasOptions.call(this, match[1].trim()), clonedOptions);
+	      if (typeof value !== 'string') value = utils.makeString(value);
+	      if (!value) {
+	        this.logger.warn('missed to pass in variable ' + match[1] + ' for interpolating ' + str);
+	        value = '';
+	      }
+	      value = this.escapeValue ? regexSafe(utils.escape(value)) : regexSafe(value);
+	      str = str.replace(match[0], value);
+	      this.regexp.lastIndex = 0;
+	    }
+	    return str;
+	  };
+	
+	  return Interpolator;
+	}();
+	
+	exports.default = Interpolator;
+
+/***/ },
+/* 68 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+	
+	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+	
+	var _utils = __webpack_require__(61);
+	
+	var utils = _interopRequireWildcard(_utils);
+	
+	var _logger = __webpack_require__(58);
+	
+	var _logger2 = _interopRequireDefault(_logger);
+	
+	var _EventEmitter2 = __webpack_require__(59);
+	
+	var _EventEmitter3 = _interopRequireDefault(_EventEmitter2);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+	
+	function _defaults(obj, defaults) { var keys = Object.getOwnPropertyNames(defaults); for (var i = 0; i < keys.length; i++) { var key = keys[i]; var value = Object.getOwnPropertyDescriptor(defaults, key); if (value && value.configurable && obj[key] === undefined) { Object.defineProperty(obj, key, value); } } return obj; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : _defaults(subClass, superClass); }
+	
+	function remove(arr, what) {
+	  var found = arr.indexOf(what);
+	
+	  while (found !== -1) {
+	    arr.splice(found, 1);
+	    found = arr.indexOf(what);
+	  }
+	}
+	
+	var Connector = function (_EventEmitter) {
+	  _inherits(Connector, _EventEmitter);
+	
+	  function Connector(backend, store, services) {
+	    var options = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
+	
+	    _classCallCheck(this, Connector);
+	
+	    var _this = _possibleConstructorReturn(this, _EventEmitter.call(this));
+	
+	    _this.backend = backend;
+	    _this.store = store;
+	    _this.services = services;
+	    _this.options = options;
+	    _this.logger = _logger2.default.create('backendConnector');
+	
+	    _this.state = {};
+	    _this.queue = [];
+	
+	    _this.backend && _this.backend.init && _this.backend.init(services, options.backend, options);
+	    return _this;
+	  }
+	
+	  Connector.prototype.queueLoad = function queueLoad(languages, namespaces, callback) {
+	    var _this2 = this;
+	
+	    // find what needs to be loaded
+	    var toLoad = [],
+	        pending = [],
+	        toLoadLanguages = [],
+	        toLoadNamespaces = [];
+	
+	    languages.forEach(function (lng) {
+	      var hasAllNamespaces = true;
+	
+	      namespaces.forEach(function (ns) {
+	        var name = lng + '|' + ns;
+	
+	        if (_this2.store.hasResourceBundle(lng, ns)) {
+	          _this2.state[name] = 2; // loaded
+	        } else if (_this2.state[name] < 0) {
+	            // nothing to do for err
+	          } else if (_this2.state[name] === 1) {
+	              if (pending.indexOf(name) < 0) pending.push(name);
+	            } else {
+	              _this2.state[name] = 1; // pending
+	
+	              hasAllNamespaces = false;
+	
+	              if (pending.indexOf(name) < 0) pending.push(name);
+	              if (toLoad.indexOf(name) < 0) toLoad.push(name);
+	              if (toLoadNamespaces.indexOf(ns) < 0) toLoadNamespaces.push(ns);
+	            }
+	      });
+	
+	      if (!hasAllNamespaces) toLoadLanguages.push(lng);
+	    });
+	
+	    if (toLoad.length || pending.length) {
+	      this.queue.push({
+	        pending: pending,
+	        loaded: {},
+	        errors: [],
+	        callback: callback
+	      });
+	    }
+	
+	    return {
+	      toLoad: toLoad,
+	      pending: pending,
+	      toLoadLanguages: toLoadLanguages,
+	      toLoadNamespaces: toLoadNamespaces
+	    };
+	  };
+	
+	  Connector.prototype.loaded = function loaded(name, err, data) {
+	    var _this3 = this;
+	
+	    var _name$split = name.split('|');
+	
+	    var _name$split2 = _slicedToArray(_name$split, 2);
+	
+	    var lng = _name$split2[0];
+	    var ns = _name$split2[1];
+	
+	
+	    if (err) this.emit('failedLoading', lng, ns, err);
+	
+	    if (data) {
+	      this.store.addResourceBundle(lng, ns, data);
+	    }
+	
+	    // set loaded
+	    this.state[name] = err ? -1 : 2;
+	    // callback if ready
+	    this.queue.forEach(function (q) {
+	      utils.pushPath(q.loaded, [lng], ns);
+	      remove(q.pending, name);
+	
+	      if (err) q.errors.push(err);
+	
+	      if (q.pending.length === 0 && !q.done) {
+	        q.errors.length ? q.callback(q.errors) : q.callback();
+	        _this3.emit('loaded', q.loaded);
+	        q.done = true;
+	      }
+	    });
+	
+	    // remove done load requests
+	    this.queue = this.queue.filter(function (q) {
+	      return !q.done;
+	    });
+	  };
+	
+	  Connector.prototype.read = function read(lng, ns, fcName, tried, wait, callback) {
+	    var _this4 = this;
+	
+	    if (!tried) tried = 0;
+	    if (!wait) wait = 250;
+	
+	    if (!lng.length) return callback(null, {}); // noting to load
+	
+	    this.backend[fcName](lng, ns, function (err, data) {
+	      if (err && data /* = retryFlag */ && tried < 5) {
+	        setTimeout(function () {
+	          _this4.read.call(_this4, lng, ns, fcName, ++tried, wait * 2, callback);
+	        }, wait);
+	        return;
+	      }
+	      callback(err, data);
+	    });
+	  };
+	
+	  Connector.prototype.load = function load(languages, namespaces, callback) {
+	    var _this5 = this;
+	
+	    if (!this.backend) {
+	      this.logger.warn('No backend was added via i18next.use. Will not load resources.');
+	      return callback && callback();
+	    }
+	    var options = _extends({}, this.backend.options, this.options.backend);
+	
+	    if (typeof languages === 'string') languages = this.services.languageUtils.toResolveHierarchy(languages);
+	    if (typeof namespaces === 'string') namespaces = [namespaces];
+	
+	    var toLoad = this.queueLoad(languages, namespaces, callback);
+	    if (!toLoad.toLoad.length) {
+	      if (!toLoad.pending.length) callback(); // nothing to load and no pendings...callback now
+	      return; // pendings will trigger callback
+	    }
+	
+	    // load with multi-load
+	    if (options.allowMultiLoading && this.backend.readMulti) {
+	      this.read(toLoad.toLoadLanguages, toLoad.toLoadNamespaces, 'readMulti', null, null, function (err, data) {
+	        if (err) _this5.logger.warn('loading namespaces ' + toLoad.toLoadNamespaces.join(', ') + ' for languages ' + toLoad.toLoadLanguages.join(', ') + ' via multiloading failed', err);
+	        if (!err && data) _this5.logger.log('loaded namespaces ' + toLoad.toLoadNamespaces.join(', ') + ' for languages ' + toLoad.toLoadLanguages.join(', ') + ' via multiloading', data);
+	
+	        toLoad.toLoad.forEach(function (name) {
+	          var _name$split3 = name.split('|');
+	
+	          var _name$split4 = _slicedToArray(_name$split3, 2);
+	
+	          var l = _name$split4[0];
+	          var n = _name$split4[1];
+	
+	
+	          var bundle = utils.getPath(data, [l, n]);
+	          if (bundle) {
+	            _this5.loaded(name, err, bundle);
+	          } else {
+	            var _err = 'loading namespace ' + n + ' for language ' + l + ' via multiloading failed';
+	            _this5.loaded(name, _err);
+	            _this5.logger.error(_err);
+	          }
+	        });
+	      });
+	    }
+	
+	    // load one by one
+	    else {
+	        (function () {
+	          var readOne = function readOne(name) {
+	            var _this6 = this;
+	
+	            var _name$split5 = name.split('|');
+	
+	            var _name$split6 = _slicedToArray(_name$split5, 2);
+	
+	            var lng = _name$split6[0];
+	            var ns = _name$split6[1];
+	
+	
+	            this.read(lng, ns, 'read', null, null, function (err, data) {
+	              if (err) _this6.logger.warn('loading namespace ' + ns + ' for language ' + lng + ' failed', err);
+	              if (!err && data) _this6.logger.log('loaded namespace ' + ns + ' for language ' + lng, data);
+	
+	              _this6.loaded(name, err, data);
+	            });
+	          };
+	
+	          ;
+	
+	          toLoad.toLoad.forEach(function (name) {
+	            readOne.call(_this5, name);
+	          });
+	        })();
+	      }
+	  };
+	
+	  Connector.prototype.reload = function reload(languages, namespaces) {
+	    var _this7 = this;
+	
+	    if (!this.backend) {
+	      this.logger.warn('No backend was added via i18next.use. Will not load resources.');
+	    }
+	    var options = _extends({}, this.backend.options, this.options.backend);
+	
+	    if (typeof languages === 'string') languages = this.services.languageUtils.toResolveHierarchy(languages);
+	    if (typeof namespaces === 'string') namespaces = [namespaces];
+	
+	    // load with multi-load
+	    if (options.allowMultiLoading && this.backend.readMulti) {
+	      this.read(languages, namespaces, 'readMulti', null, null, function (err, data) {
+	        if (err) _this7.logger.warn('reloading namespaces ' + namespaces.join(', ') + ' for languages ' + languages.join(', ') + ' via multiloading failed', err);
+	        if (!err && data) _this7.logger.log('reloaded namespaces ' + namespaces.join(', ') + ' for languages ' + languages.join(', ') + ' via multiloading', data);
+	
+	        languages.forEach(function (l) {
+	          namespaces.forEach(function (n) {
+	            var bundle = utils.getPath(data, [l, n]);
+	            if (bundle) {
+	              _this7.loaded(l + '|' + n, err, bundle);
+	            } else {
+	              var _err2 = 'reloading namespace ' + n + ' for language ' + l + ' via multiloading failed';
+	              _this7.loaded(l + '|' + n, _err2);
+	              _this7.logger.error(_err2);
+	            }
+	          });
+	        });
+	      });
+	    }
+	
+	    // load one by one
+	    else {
+	        (function () {
+	          var readOne = function readOne(name) {
+	            var _this8 = this;
+	
+	            var _name$split7 = name.split('|');
+	
+	            var _name$split8 = _slicedToArray(_name$split7, 2);
+	
+	            var lng = _name$split8[0];
+	            var ns = _name$split8[1];
+	
+	
+	            this.read(lng, ns, 'read', null, null, function (err, data) {
+	              if (err) _this8.logger.warn('reloading namespace ' + ns + ' for language ' + lng + ' failed', err);
+	              if (!err && data) _this8.logger.log('reloaded namespace ' + ns + ' for language ' + lng, data);
+	
+	              _this8.loaded(name, err, data);
+	            });
+	          };
+	
+	          ;
+	
+	          languages.forEach(function (l) {
+	            namespaces.forEach(function (n) {
+	              readOne.call(_this7, l + '|' + n);
+	            });
+	          });
+	        })();
+	      }
+	  };
+	
+	  Connector.prototype.saveMissing = function saveMissing(languages, namespace, key, fallbackValue) {
+	    if (this.backend && this.backend.create) this.backend.create(languages, namespace, key, fallbackValue);
+	
+	    // write to store to avoid resending
+	    if (!languages || !languages[0]) return;
+	    this.store.addResource(languages[0], namespace, key, fallbackValue);
+	  };
+	
+	  return Connector;
+	}(_EventEmitter3.default);
+	
+	exports.default = Connector;
+
+/***/ },
+/* 69 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+	
+	var _utils = __webpack_require__(61);
+	
+	var utils = _interopRequireWildcard(_utils);
+	
+	var _logger = __webpack_require__(58);
+	
+	var _logger2 = _interopRequireDefault(_logger);
+	
+	var _EventEmitter2 = __webpack_require__(59);
+	
+	var _EventEmitter3 = _interopRequireDefault(_EventEmitter2);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+	
+	function _defaults(obj, defaults) { var keys = Object.getOwnPropertyNames(defaults); for (var i = 0; i < keys.length; i++) { var key = keys[i]; var value = Object.getOwnPropertyDescriptor(defaults, key); if (value && value.configurable && obj[key] === undefined) { Object.defineProperty(obj, key, value); } } return obj; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : _defaults(subClass, superClass); }
+	
+	var Connector = function (_EventEmitter) {
+	  _inherits(Connector, _EventEmitter);
+	
+	  function Connector(cache, store, services) {
+	    var options = arguments.length <= 3 || arguments[3] === undefined ? {} : arguments[3];
+	
+	    _classCallCheck(this, Connector);
+	
+	    var _this = _possibleConstructorReturn(this, _EventEmitter.call(this));
+	
+	    _this.cache = cache;
+	    _this.store = store;
+	    _this.services = services;
+	    _this.options = options;
+	    _this.logger = _logger2.default.create('cacheConnector');
+	
+	    _this.cache && _this.cache.init && _this.cache.init(services, options.cache, options);
+	    return _this;
+	  }
+	
+	  Connector.prototype.load = function load(languages, namespaces, callback) {
+	    var _this2 = this;
+	
+	    if (!this.cache) return callback && callback();
+	    var options = _extends({}, this.cache.options, this.options.cache);
+	
+	    if (typeof languages === 'string') languages = this.services.languageUtils.toResolveHierarchy(languages);
+	    if (typeof namespaces === 'string') namespaces = [namespaces];
+	
+	    if (options.enabled) {
+	      this.cache.load(languages, function (err, data) {
+	        if (err) _this2.logger.error('loading languages ' + languages.join(', ') + ' from cache failed', err);
+	        if (data) {
+	          for (var l in data) {
+	            for (var n in data[l]) {
+	              if (n === 'i18nStamp') continue;
+	              var bundle = data[l][n];
+	              if (bundle) _this2.store.addResourceBundle(l, n, bundle);
+	            }
+	          }
+	        }
+	        if (callback) callback();
+	      });
+	    } else {
+	      if (callback) callback();
+	    }
+	  };
+	
+	  Connector.prototype.save = function save() {
+	    if (this.cache && this.options.cache && this.options.cache.enabled) this.cache.save(this.store.data);
+	  };
+	
+	  return Connector;
+	}(_EventEmitter3.default);
+	
+	exports.default = Connector;
+
+/***/ },
+/* 70 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.get = get;
+	exports.transformOptions = transformOptions;
+	function get() {
+	  return {
+	    debug: false,
+	    initImmediate: true,
+	
+	    ns: ['translation'],
+	    defaultNS: ['translation'],
+	    fallbackLng: ['dev'],
+	    fallbackNS: false, // string or array of namespaces
+	
+	    whitelist: false, // array with whitelisted languages
+	    nonExplicitWhitelist: false,
+	    load: 'all', // | currentOnly | languageOnly
+	    preload: false, // array with preload languages
+	
+	    keySeparator: '.',
+	    nsSeparator: ':',
+	    pluralSeparator: '_',
+	    contextSeparator: '_',
+	
+	    saveMissing: false, // enable to send missing values
+	    saveMissingTo: 'fallback', // 'current' || 'all'
+	    missingKeyHandler: false, // function(lng, ns, key, fallbackValue) -> override if prefer on handling
+	
+	    postProcess: false, // string or array of postProcessor names
+	    returnNull: true, // allows null value as valid translation
+	    returnEmptyString: true, // allows empty string value as valid translation
+	    returnObjects: false,
+	    joinArrays: false, // or string to join array
+	    returnedObjectHandler: function returnedObjectHandler() {}, // function(key, value, options) triggered if key returns object but returnObjects is set to false
+	    parseMissingKeyHandler: false, // function(key) parsed a key that was not found in t() before returning
+	    appendNamespaceToMissingKey: false,
+	    overloadTranslationOptionHandler: function overloadTranslationOptionHandler(args) {
+	      return { defaultValue: args[1] };
+	    },
+	
+	    interpolation: {
+	      escapeValue: true,
+	      format: function format(value, _format, lng) {
+	        return value;
+	      },
+	      prefix: '{{',
+	      suffix: '}}',
+	      formatSeparator: ',',
+	      // prefixEscaped: '{{',
+	      // suffixEscaped: '}}',
+	      // unescapeSuffix: '',
+	      unescapePrefix: '-',
+	
+	      nestingPrefix: '$t(',
+	      nestingSuffix: ')',
+	      // nestingPrefixEscaped: '$t(',
+	      // nestingSuffixEscaped: ')',
+	      defaultVariables: undefined // object that can have values to interpolate on - extends passed in interpolation data
+	    }
+	  };
+	}
+	
+	function transformOptions(options) {
+	  // create namespace object if namespace is passed in as string
+	  if (typeof options.ns === 'string') options.ns = [options.ns];
+	  if (typeof options.fallbackLng === 'string') options.fallbackLng = [options.fallbackLng];
+	  if (typeof options.fallbackNS === 'string') options.fallbackNS = [options.fallbackNS];
+	
+	  // extend whitelist with cimode
+	  if (options.whitelist && options.whitelist.indexOf('cimode') < 0) options.whitelist.push('cimode');
+	
+	  return options;
+	}
+
+/***/ },
+/* 71 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var locale = {
+	  translation: {
+	    test: 'asssent',
+	    'Football match process': 'Football match process'
+	  }
+	};
+	
+	exports.default = locale;
+
+/***/ },
+/* 72 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	var locale = {
+	  translation: {
+	    test: 'asssent',
+	    'Football match process': 'Кто пойдет на футбол - ',
+	    'submit go': 'Я пойду!',
+	    'Type your name': 'Введите имя',
+	    'wont go': 'я передумал'
+	  }
+	};
+	
+	exports.default = locale;
+
+/***/ },
+/* 73 */
+/***/ function(module, exports) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	exports.serializeObject = serializeObject;
+	
+	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+	
+	function serializeObject(el) {
+	  var o = {};
+	
+	  [].concat(_toConsumableArray(el.elements)).forEach(function (item) {
+	    if (item.name) {
+	      if (typeof o[item.name] !== 'undefined') {
+	        if (!o[item.name].push) {
+	          o[item.name] = [o[item.name]];
+	        }
+	        o[item.name].push(item.value || '');
+	      } else {
+	        o[item.name] = item.value || '';
+	      }
+	    }
+	  });
+	
+	  return o;
+	}
 
 /***/ }
 /******/ ]);

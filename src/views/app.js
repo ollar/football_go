@@ -1,17 +1,18 @@
 import firebase from 'firebase';
 
-import { h, create } from 'virtual-dom';
+import { create } from 'virtual-dom';
 
 const App = (function App() {
   const userModel = new Backbone.Model();
+  let rootNode;
 
-  function attach(el) {
-    const tree = h('div');
-    const rootNode = create(tree);
+  function attach(el, View) {
+    const tree = new View().render();
+    rootNode = create(tree);
     el.appendChild(rootNode);
   }
 
-  function initialize(el) {
+  function initialize() {
     const config = {
       apiKey: 'AIzaSyAIbkLzp46HhDXBcMBmQiGXc6lbtWZ7l7s',
       authDomain: 'footballgo-fcfc3.firebaseapp.com',
@@ -24,6 +25,7 @@ const App = (function App() {
 
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
+        console.log(user);
         userModel.set({
           isAnonymous: user.isAnonymous,
           uid: user.uid,
@@ -36,13 +38,14 @@ const App = (function App() {
         });
       }
     });
-
-    attach(el);
   }
 
   return {
     initialize,
     userModel,
+    attach,
+    getRootNode: () => rootNode,
+    getUserModel: () => userModel,
   };
 }());
 
