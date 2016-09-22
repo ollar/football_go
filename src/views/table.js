@@ -4,7 +4,7 @@ import View from './view';
 import App from './app';
 
 import TeamCollection from '../collections/team';
-import PlayerView from './player';
+import playerView from './player';
 
 import { serializeObject } from '../utils';
 import i18n from '../translate';
@@ -16,7 +16,7 @@ class PlayersTable extends View {
         h('span', i18n.t('Football match process')),
         h('span', this.collection.matchDate),
       ]),
-      h('ol.players-list', this.collection.map(model => this.childView.setModel(model).render())),
+      h('ol.players-list', this.collection.map(model => playerView(model))),
       // (localStorage.getItem('aggreeToGo') ? null : (
       h('form', { onsubmit: this.addPlayer.bind(this) }, [
         h('input', {
@@ -42,7 +42,6 @@ class PlayersTable extends View {
     this.userModel = App.getUserModel();
     this.collection = new TeamCollection();
     this.collection.fetch();
-    this.childView = new PlayerView();
     console.log(this.userModel);
     this.listenTo(this.collection, 'update', this.render);
   }
