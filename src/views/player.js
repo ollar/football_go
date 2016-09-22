@@ -4,7 +4,6 @@ import i18n from '../translate';
 
 function playerView(model) {
   function onRemove() {
-    localStorage.removeItem('aggreeToGo');
     model.destroy();
   }
 

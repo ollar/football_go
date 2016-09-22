@@ -16,13 +16,6 @@ class TeamCollection extends Backbone.Collection {
     return TeamCollection.formatDate(TeamCollection.nextWednesday);
   }
 
-  initMatch() {
-    fetch(`${this.urlBase}.json`, {
-      method: 'POST',
-      body: {},
-    });
-  }
-
   get model() {
     return PlayerModel;
   }
