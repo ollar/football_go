@@ -41,7 +41,7 @@ gulp.task("build-dev", ["webpack:build-dev", 'sass'], function() {
 // Production build
 gulp.task("build", ["webpack:build"]);
 
-gulp.task("webpack:build", function(callback) {
+gulp.task("webpack:build", ['copy', 'sass'], function(callback) {
   // modify some webpack config options
   var myConfig = Object.create(webpackConfig);
   myConfig.plugins = myConfig.plugins.concat(
