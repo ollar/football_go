@@ -49,6 +49,7 @@ class PlayersTable extends View {
   addPlayer(e) {
     e.preventDefault();
     const data = serializeObject(e.target);
+    data.uid = this.userModel.get('uid');
     if (!data.playersName) return;
     localStorage.setItem('myName', data.playersName);
     localStorage.setItem('aggreeToGo', true);

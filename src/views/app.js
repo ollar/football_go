@@ -25,7 +25,6 @@ const App = (function App() {
 
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
-        console.log(user);
         userModel.set({
           isAnonymous: user.isAnonymous,
           uid: user.uid,
