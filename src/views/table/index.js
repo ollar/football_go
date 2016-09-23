@@ -22,6 +22,7 @@ class PlayersTable extends View {
         userModel: this.userModel,
         collection: this.collection,
         addPlayer: this.addPlayer.bind(this),
+        editName: this.editName.bind(this),
       }),
     ]);
   }
@@ -42,6 +43,11 @@ class PlayersTable extends View {
     localStorage.setItem('myName', data.playersName);
     e.target.reset();
     this.collection.create(data);
+  }
+
+  editName() {
+    localStorage.removeItem('myName');
+    this.render();
   }
 }
 

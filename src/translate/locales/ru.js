@@ -5,6 +5,7 @@ const locale = {
     'submit go': 'Я пойду!',
     'Type your name': 'Введите имя',
     'wont go': 'я передумал',
+    'edit name': 'сменить имя',
   },
 };
 

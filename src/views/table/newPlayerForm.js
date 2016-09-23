@@ -9,15 +9,12 @@ function newPlayerFormComponent(props) {
 
   if (alreadyInTeam()) return null;
   return (
-    h('form', { onsubmit: props.addPlayer }, [
+    h('form.join-match', { onsubmit: props.addPlayer }, [
+      (localStorage.getItem('myName') ? h('div.edit-name', {
+        onclick: props.editName,
+      }, i18n.t('edit name')) : null),
       h('input', {
-        style: (localStorage.getItem('myName') ? (
-          {
-            visibility: 'hidden',
-            height: 0,
-            width: 0,
-          }
-        ) : {}),
+        disabled: !!localStorage.getItem('myName'),
         type: 'text',
         name: 'playersName',
         placeholder: i18n.t('Type your name'),
