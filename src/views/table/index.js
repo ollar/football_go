@@ -17,7 +17,10 @@ class PlayersTable extends View {
       titleComponent({
         collection: this.collection,
       }),
-      playersListComponent(this.collection),
+      playersListComponent({
+        collection: this.collection,
+        userModel: this.userModel,
+      }),
       newPlayerFormComponent({
         userModel: this.userModel,
         collection: this.collection,

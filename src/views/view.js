@@ -2,9 +2,13 @@ import { h, diff, patch } from 'virtual-dom';
 
 import App from './app';
 
-class View extends Backbone.View {
+class View {
   get template() {
     return h('div');
+  }
+
+  constructor(...options) {
+    this.initialize.call(this, options);
   }
 
   update() {
@@ -27,5 +31,7 @@ class View extends Backbone.View {
     return this.attach();
   }
 }
+
+_.extend(View.prototype, Backbone.Events);
 
 export default View;

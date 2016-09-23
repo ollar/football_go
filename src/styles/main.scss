@@ -53,7 +53,7 @@ h1{
     cursor: pointer;
   }
 
-  &:hover{
+  &.me:hover{
     .remove{
       display: block;
     }

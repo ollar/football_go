@@ -1,8 +1,13 @@
 import { h } from 'virtual-dom';
 import playerView from '../player';
 
-export default function playersListComponent(collection) {
+function playersListComponent(props) {
   return (
-    h('ol.players-list', collection.map(model => playerView(model)))
+    h('ol.players-list', props.collection.map(model => playerView({
+      model,
+      userModel: props.userModel,
+    })))
   );
 }
+
+export default playersListComponent;
