@@ -1,13 +1,18 @@
 import firebase from 'firebase';
 
-import { create } from 'virtual-dom';
+import { h, create } from 'virtual-dom';
+
+import AppRouter from './router';
 
 const App = (function App() {
   const userModel = new Backbone.Model();
   let rootNode;
 
-  function attach(el, View) {
-    const tree = new View().render();
+  const template = h('div', 'test');
+  const appRouter = new AppRouter();
+
+  function attach(el) {
+    const tree = template;
     rootNode = create(tree);
     el.appendChild(rootNode);
   }
@@ -37,6 +42,8 @@ const App = (function App() {
         });
       }
     });
+
+    Backbone.history.start();
   }
 
   return {
@@ -45,6 +52,7 @@ const App = (function App() {
     attach,
     getRootNode: () => rootNode,
     getUserModel: () => userModel,
+    getRouter: () => appRouter,
   };
 }());
 

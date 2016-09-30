@@ -1,7 +1,7 @@
 import { h } from 'virtual-dom';
 
 import View from '../view';
-import App from '../app';
+import App from '../../app';
 
 import TeamCollection from '../../collections/team';
 

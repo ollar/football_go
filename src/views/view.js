@@ -1,6 +1,6 @@
 import { h, diff, patch } from 'virtual-dom';
 
-import App from './app';
+import App from '../app';
 
 class View {
   get template() {
@@ -8,20 +8,23 @@ class View {
   }
 
   constructor(...options) {
-    this.initialize.call(this, options);
+    if (this.initialize) this.initialize.call(this, options);
+    this.rootNode = App.getRootNode();
   }
 
   update() {
-    const rootNode = App.getRootNode();
     const tree = this.template;
     const patches = diff(this.tree, tree);
-    patch(rootNode, patches);
+    patch(this.rootNode, patches);
     this.tree = tree;
+    return this;
   }
 
   attach() {
     this.tree = this.template;
-    return this.tree;
+    const patches = diff(this.rootNode, this.tree);
+    patch(this.rootNode, patches);
+    return this;
   }
 
   render() {

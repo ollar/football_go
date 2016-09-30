@@ -1,5 +1,4 @@
-import App from './views/app';
-import PlayersTable from './views/table/index';
+import App from './app';
 
+App.attach(document.getElementById('app'));
 App.initialize();
-App.attach(document.getElementById('app'), PlayersTable);
