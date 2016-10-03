@@ -1,6 +1,6 @@
 import { h } from 'virtual-dom';
 
-import i18n from '../translate';
+import i18n from '../../translate';
 
 function playerView(props) {
   function onRemove() {

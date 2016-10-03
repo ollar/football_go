@@ -21,6 +21,9 @@ const locale = {
     'October': 'Октября',
     'November': 'Ноября',
     'December': 'Декабря',
+
+    'Players Table': 'Таблица игроков',
+    'Contacts': 'Контакты',
   },
 };
 

@@ -134,6 +134,9 @@
 	    },
 	    getRouter: function getRouter() {
 	      return appRouter;
+	    },
+	    navigate: function navigate(route) {
+	      return Backbone.history.navigate(route, true);
 	    }
 	  };
 	}();
@@ -656,7 +659,7 @@
 /* 4 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_RESULT__;var require;/* WEBPACK VAR INJECTION */(function(process, global, module) {/*** IMPORTS FROM imports-loader ***/
+	var require;var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(process, global, module) {/*** IMPORTS FROM imports-loader ***/
 	(function() {
 	
 	/*!
@@ -7765,9 +7768,13 @@
 	
 	var _table2 = _interopRequireDefault(_table);
 	
-	var _test = __webpack_require__(80);
+	var _test = __webpack_require__(81);
 	
 	var _test2 = _interopRequireDefault(_test);
+	
+	var _contacts = __webpack_require__(82);
+	
+	var _contacts2 = _interopRequireDefault(_contacts);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -7780,30 +7787,37 @@
 	var AppRouter = function (_Backbone$Router) {
 	  _inherits(AppRouter, _Backbone$Router);
 	
-	  function AppRouter() {
+	  function AppRouter(options) {
 	    _classCallCheck(this, AppRouter);
 	
-	    return _possibleConstructorReturn(this, Object.getPrototypeOf(AppRouter).apply(this, arguments));
+	    var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(AppRouter).call(this, options));
+	
+	    _this.activeRoute = {};
+	    return _this;
 	  }
 	
 	  _createClass(AppRouter, [{
 	    key: 'main',
 	    value: function main() {
-	      console.log('main');
-	      new _table2.default().render();
+	      this.activeRoute = new _table2.default().render();
 	    }
 	  }, {
 	    key: 'test',
 	    value: function test() {
-	      console.log('test');
-	      new _test2.default().render();
+	      this.activeRoute = new _test2.default().render();
+	    }
+	  }, {
+	    key: 'contacts',
+	    value: function contacts() {
+	      this.activeRoute = new _contacts2.default().render();
 	    }
 	  }, {
 	    key: 'routes',
 	    get: function get() {
 	      return {
 	        '': 'main',
-	        'test': 'test'
+	        test: 'test',
+	        contacts: 'contacts'
 	      };
 	    }
 	  }]);
@@ -7852,7 +7866,11 @@
 	
 	var _title2 = _interopRequireDefault(_title);
 	
-	var _utils = __webpack_require__(79);
+	var _footer = __webpack_require__(79);
+	
+	var _footer2 = _interopRequireDefault(_footer);
+	
+	var _utils = __webpack_require__(80);
 	
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 	
@@ -7900,7 +7918,7 @@
 	  }, {
 	    key: 'template',
 	    get: function get() {
-	      return (0, _virtualDom.h)('div.play-team', [(0, _title2.default)({
+	      return (0, _virtualDom.h)('div.play-team.center-wrapper', [(0, _title2.default)({
 	        collection: this.collection
 	      }), (0, _playersList2.default)({
 	        collection: this.collection,
@@ -7910,7 +7928,7 @@
 	        collection: this.collection,
 	        addPlayer: this.addPlayer.bind(this),
 	        editName: this.editName.bind(this)
-	      })]);
+	      }), (0, _footer2.default)()]);
 	    }
 	  }]);
 	
@@ -10660,7 +10678,10 @@
 	    'September': 'Сентября',
 	    'October': 'Октября',
 	    'November': 'Ноября',
-	    'December': 'Декабря'
+	    'December': 'Декабря',
+	
+	    'Players Table': 'Таблица игроков',
+	    'Contacts': 'Контакты'
 	  }
 	};
 	
@@ -10752,6 +10773,38 @@
 
 /***/ },
 /* 79 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _virtualDom = __webpack_require__(16);
+	
+	var _app = __webpack_require__(1);
+	
+	var _app2 = _interopRequireDefault(_app);
+	
+	var _translate = __webpack_require__(58);
+	
+	var _translate2 = _interopRequireDefault(_translate);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function footerComponent() {
+	  return (0, _virtualDom.h)('div.footer', [(0, _virtualDom.h)('.link', { onclick: function onclick() {
+	      return _app2.default.navigate('');
+	    } }, _translate2.default.t('Players Table')), (0, _virtualDom.h)('.link', { onclick: function onclick() {
+	      return _app2.default.navigate('contacts');
+	    } }, _translate2.default.t('Contacts'))]);
+	}
+	
+	exports.default = footerComponent;
+
+/***/ },
+/* 80 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -10783,7 +10836,7 @@
 	}
 
 /***/ },
-/* 80 */
+/* 81 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -10828,6 +10881,113 @@
 	}(_view2.default);
 	
 	exports.default = Test;
+
+/***/ },
+/* 82 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	var _virtualDom = __webpack_require__(16);
+	
+	var _view = __webpack_require__(53);
+	
+	var _view2 = _interopRequireDefault(_view);
+	
+	var _translate = __webpack_require__(58);
+	
+	var _translate2 = _interopRequireDefault(_translate);
+	
+	var _info = __webpack_require__(83);
+	
+	var _info2 = _interopRequireDefault(_info);
+	
+	var _maps = __webpack_require__(84);
+	
+	var _maps2 = _interopRequireDefault(_maps);
+	
+	var _footer = __webpack_require__(79);
+	
+	var _footer2 = _interopRequireDefault(_footer);
+	
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var ContactsPage = function (_View) {
+	  _inherits(ContactsPage, _View);
+	
+	  function ContactsPage() {
+	    _classCallCheck(this, ContactsPage);
+	
+	    return _possibleConstructorReturn(this, Object.getPrototypeOf(ContactsPage).apply(this, arguments));
+	  }
+	
+	  _createClass(ContactsPage, [{
+	    key: 'template',
+	    get: function get() {
+	      return (0, _virtualDom.h)('.center-wrapper', [(0, _virtualDom.h)('h1.page-title', _translate2.default.t('Contacts')), (0, _info2.default)(), (0, _maps2.default)(), (0, _footer2.default)()]);
+	    }
+	  }]);
+	
+	  return ContactsPage;
+	}(_view2.default);
+	
+	exports.default = ContactsPage;
+
+/***/ },
+/* 83 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _virtualDom = __webpack_require__(16);
+	
+	function infoComponent() {
+	  return (0, _virtualDom.h)('div', [(0, _virtualDom.h)('div', [(0, _virtualDom.h)('b', 'Адрес: '), (0, _virtualDom.h)('span', 'г. Санкт-Петербург, Уткин проспект, д. 15, м. Ладожская')]), (0, _virtualDom.h)('div', [(0, _virtualDom.h)('b', 'Телефон: '), (0, _virtualDom.h)('tel', '(812) 992-91-05')]), (0, _virtualDom.h)('div', [(0, _virtualDom.h)('span', 'Наша группа Вконтакте '), (0, _virtualDom.h)('a', { href: 'http://vk.com/nevafootball' }, 'http://vk.com/nevafootball')])]);
+	}
+	
+	exports.default = infoComponent;
+
+/***/ },
+/* 84 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
+	
+	var _virtualDom = __webpack_require__(16);
+	
+	function mapsComponent() {
+	  return (0, _virtualDom.h)('div.maps-wrapper', [(0, _virtualDom.h)('div.map', [(0, _virtualDom.h)('div', 'Схема проезда c пр.Энергетиков'), (0, _virtualDom.h)('iframe.ym', {
+	    src: 'https://api-maps.yandex.ru/frame/v1/-/CZc2VR3z',
+	    height: 400,
+	    frameborder: 0
+	  })]), (0, _virtualDom.h)('div', [(0, _virtualDom.h)('div', 'Схема проезда c Заневского пр.'), (0, _virtualDom.h)('iframe.ym', {
+	    src: 'https://api-maps.yandex.ru/frame/v1/-/CZc2VDoM',
+	    height: 400,
+	    frameborder: 0
+	  })])]);
+	}
+	
+	exports.default = mapsComponent;
 
 /***/ }
 /******/ ]);

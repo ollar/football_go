@@ -8,12 +8,13 @@ import TeamCollection from '../../collections/team';
 import playersListComponent from './playersList';
 import newPlayerFormComponent from './newPlayerForm';
 import titleComponent from './title';
+import footerComponent from './footer';
 
 import { serializeObject } from '../../utils';
 
 class PlayersTable extends View {
   get template() {
-    return h('div.play-team', [
+    return h('div.play-team.center-wrapper', [
       titleComponent({
         collection: this.collection,
       }),
@@ -27,6 +28,7 @@ class PlayersTable extends View {
         addPlayer: this.addPlayer.bind(this),
         editName: this.editName.bind(this),
       }),
+      footerComponent(),
     ]);
   }
 

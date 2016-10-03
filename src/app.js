@@ -54,6 +54,7 @@ const App = (function App() {
     setRootNode: newRootNode => (rootNode = newRootNode),
     getUserModel: () => userModel,
     getRouter: () => appRouter,
+    navigate: route => Backbone.history.navigate(route, true),
   };
 }());
 

@@ -1,4 +1,5 @@
 @import 'normalize';
+@import 'info';
 
 body{
   background-color: #fefefe;
@@ -12,10 +13,25 @@ h1{
   font-weight: normal;
 }
 
-.play-team{
+.center-wrapper{
   max-width: 1000px;
   margin: 0 auto;
   padding: 20px;
+}
+
+a, .link{
+  color: deepskyblue;
+  cursor: pointer;
+  text-decoration: underline;
+  display: inline;
+
+  &:hover{
+    text-decoration: none;
+  }
+}
+
+.play-team{
+
 }
 
 .players-list{
@@ -84,4 +100,19 @@ input[name="playersName"] {
   background-color: deepskyblue;
   border: none;
   color: #fff;
+}
+
+.footer{
+  margin-top: 100px;
+  display: flex;
+  justify-content: space-around;
+
+  .link{
+    margin: 0 20px;
+  }
+}
+
+.ym{
+  width: 100%;
+  border: none;
 }

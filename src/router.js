@@ -1,22 +1,32 @@
 import PlayersTable from './views/table';
 import Test from './views/test';
+import ContactsPage from './views/contacts';
 
 class AppRouter extends Backbone.Router {
+  constructor(options) {
+    super(options);
+
+    this.activeRoute = {};
+  }
+
   get routes() {
     return {
       '': 'main',
-      'test': 'test',
+      test: 'test',
+      contacts: 'contacts',
     };
   }
 
   main() {
-    console.log('main');
-    new PlayersTable().render();
+    this.activeRoute = new PlayersTable().render();
   }
 
   test() {
-    console.log('test');
-    new Test().render();
+    this.activeRoute = new Test().render();
+  }
+
+  contacts() {
+    this.activeRoute = new ContactsPage().render();
   }
 }
 

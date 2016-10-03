@@ -1,5 +1,5 @@
 import { h } from 'virtual-dom';
-import playerView from '../player';
+import playerView from './player';
 
 function playersListComponent(props) {
   return (
