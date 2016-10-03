@@ -21,15 +21,10 @@ function checkStatus(response) {
 function parseJSON(response) {
   let res;
 
-  if (response.body) {
-    try {
-      res = response.json();
-    } catch (e) {
-      res = response.text();
-    }
-  } else {
-    // if server just responds with status (like on DELETE action)
-    return true;
+  try {
+    res = response.json();
+  } catch (e) {
+    res = response.text();
   }
 
   return res;
