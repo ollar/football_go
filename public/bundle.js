@@ -126,6 +126,9 @@
 	    getRootNode: function getRootNode() {
 	      return rootNode;
 	    },
+	    setRootNode: function setRootNode(newRootNode) {
+	      return rootNode = newRootNode;
+	    },
 	    getUserModel: function getUserModel() {
 	      return userModel;
 	    },
@@ -7971,7 +7974,8 @@
 	    value: function attach() {
 	      this.tree = this.template;
 	      var patches = (0, _virtualDom.diff)(this.rootNode, this.tree);
-	      (0, _virtualDom.patch)(this.rootNode, patches);
+	      this.rootNode = (0, _virtualDom.patch)(this.rootNode, patches);
+	      _app2.default.setRootNode(this.rootNode);
 	      return this;
 	    }
 	  }, {

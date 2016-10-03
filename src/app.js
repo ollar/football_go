@@ -51,6 +51,7 @@ const App = (function App() {
     userModel,
     attach,
     getRootNode: () => rootNode,
+    setRootNode: newRootNode => (rootNode = newRootNode),
     getUserModel: () => userModel,
     getRouter: () => appRouter,
   };

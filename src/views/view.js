@@ -23,7 +23,8 @@ class View {
   attach() {
     this.tree = this.template;
     const patches = diff(this.rootNode, this.tree);
-    patch(this.rootNode, patches);
+    this.rootNode = patch(this.rootNode, patches);
+    App.setRootNode(this.rootNode);
     return this;
   }
 
