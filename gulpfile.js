@@ -11,6 +11,8 @@ var sourcemaps = require('gulp-sourcemaps');
 var sass = require('gulp-sass');
 var autoPrefixer = require('gulp-autoprefixer');
 
+var postcss = require('gulp-postcss');
+
 gulp.task('sass',function(){
     gulp.src(['src/styles/main.scss'])
         .pipe(plumber({
@@ -26,6 +28,35 @@ gulp.task('sass',function(){
         .pipe(gulp.dest('public'))
 });
 
+gulp.task('post-css',function(){
+    gulp.src(['src/styles/main.pcss'])
+        .pipe(plumber({
+            handleError: function (err) {
+                console.log(err);
+                this.emit('end');
+            }
+        }))
+        .pipe(sourcemaps.init())
+        .pipe(postcss([
+          require('postcss-nested'),
+          require('postcss-import'),
+          require('autoprefixer'),
+          require('doiuse')({
+            browsers: [
+              'ie >= 10',
+              '> 1%'
+            ],
+            ignoreFiles: ['**/_normalize.pcss'],
+            onFeatureUsage: function (usageInfo) {
+              console.log(usageInfo.message)
+            }
+          }),
+        ]))
+        .pipe(rename({extname: '.css'}))
+        .pipe(sourcemaps.write('maps'))
+        .pipe(gulp.dest('public'))
+});
+
 // The development server (the recommended option for development)
 gulp.task("default", ["webpack-dev-server"]);
 
@@ -33,15 +64,15 @@ gulp.task("default", ["webpack-dev-server"]);
 // Advantage: No server required, can run app from filesystem
 // Disadvantage: Requests are not blocked until bundle is available,
 //               can serve an old app on refresh
-gulp.task("build-dev", ["webpack:build-dev", 'sass'], function() {
-  gulp.watch(["src/**/*"], ["webpack:build-dev"]);
-  gulp.watch(["src/**/*.scss"], ["sass"]);
+gulp.task("build-dev", ["webpack:build-dev", 'post-css'], function() {
+  gulp.watch(["src/**/*.js"], ["webpack:build-dev"]);
+  gulp.watch(["src/**/*.pcss"], ["post-css"]);
 });
 
 // Production build
 gulp.task("build", ["webpack:build"]);
 
-gulp.task("webpack:build", ['copy', 'sass'], function(callback) {
+gulp.task("webpack:build", ['copy', 'post-css'], function(callback) {
   // modify some webpack config options
   var myConfig = Object.create(webpackConfig);
   myConfig.plugins = myConfig.plugins.concat(
