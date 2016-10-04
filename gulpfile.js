@@ -10,7 +10,7 @@ var rename = require('gulp-rename');
 var sourcemaps = require('gulp-sourcemaps');
 var sass = require('gulp-sass');
 var autoPrefixer = require('gulp-autoprefixer');
-
+var cssnano = require('cssnano');
 var postcss = require('gulp-postcss');
 
 gulp.task('sass',function(){
@@ -51,6 +51,8 @@ gulp.task('post-css',function(){
               console.log(usageInfo.message)
             }
           }),
+          require('postcss-short'),
+          cssnano,
         ]))
         .pipe(rename({extname: '.css'}))
         .pipe(sourcemaps.write('maps'))
