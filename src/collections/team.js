@@ -9,7 +9,7 @@ class TeamCollection extends Backbone.Collection {
   }
 
   get url() {
-    return `${this.urlBase}.json`;
+    return `${this.urlBase}.json?auth=${this.token}`;
   }
 
   get matchDate() {
@@ -18,6 +18,10 @@ class TeamCollection extends Backbone.Collection {
 
   get model() {
     return PlayerModel;
+  }
+
+  get token() {
+    return localStorage.getItem('token');
   }
 
   static get nextWednesday() {

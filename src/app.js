@@ -30,14 +30,17 @@ const App = (function App() {
 
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
+        user.getToken().then(token => localStorage.setItem('token', token));
         userModel.set({
           isAnonymous: user.isAnonymous,
           uid: user.uid,
         });
       } else {
         userModel.set({});
+        localStorage.removeItem('token');
         firebase.auth().signInAnonymously().catch((error) => {
           userModel.set({});
+          localStorage.removeItem('token');
           console.log(`Sign in failure: ${error.code}: ${error.message}`);
         });
       }
