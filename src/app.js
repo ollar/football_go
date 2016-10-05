@@ -3,6 +3,7 @@ import firebase from 'firebase';
 import { h, create } from 'virtual-dom';
 
 import AppRouter from './router';
+import Api from './api';
 
 const App = (function App() {
   const userModel = new Backbone.Model();
@@ -27,10 +28,10 @@ const App = (function App() {
     };
 
     firebase.initializeApp(config);
+    Api.initialize(firebase);
 
     firebase.auth().onAuthStateChanged((user) => {
       if (user) {
-        user.getToken().then(token => localStorage.setItem('token', token));
         userModel.set({
           isAnonymous: user.isAnonymous,
           uid: user.uid,

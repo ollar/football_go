@@ -1,17 +1,6 @@
 import PlayerModel from '../models/player';
 
 class TeamCollection extends Backbone.Collection {
-  get apiBase() {
-    return 'https://footballgo-fcfc3.firebaseio.com';
-  }
-  get urlBase() {
-    return `${this.apiBase}/players/${this.matchDate}`;
-  }
-
-  get url() {
-    return `${this.urlBase}.json?auth=${this.token}`;
-  }
-
   get matchDate() {
     return TeamCollection.formatDate(TeamCollection.nextWednesday);
   }
@@ -20,8 +9,8 @@ class TeamCollection extends Backbone.Collection {
     return PlayerModel;
   }
 
-  get token() {
-    return localStorage.getItem('token');
+  get url() {
+    return `/players/${this.matchDate}/`;
   }
 
   static get nextWednesday() {
