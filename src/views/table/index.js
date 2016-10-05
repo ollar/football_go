@@ -35,7 +35,6 @@ class PlayersTable extends View {
   initialize() {
     this.userModel = App.getUserModel();
     this.collection = new TeamCollection();
-    this.collection.fetch();
     this.listenTo(this.collection, 'update', this.render);
     this.listenTo(this.userModel, 'change', this.render);
   }
@@ -47,7 +46,7 @@ class PlayersTable extends View {
     if (!data.playersName) return;
     localStorage.setItem('myName', data.playersName);
     e.target.reset();
-    this.collection.create(data);
+    this.collection.create(data, { wait: true });
   }
 
   editName() {

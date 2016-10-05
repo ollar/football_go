@@ -25,11 +25,18 @@ const Api = (function Api() {
     };
   }
 
+  function on(url, eventName, fn) {
+    const ref = firebase.database().ref(url);
+    ref.on(eventName, fn);
+  }
+
   return {
     initialize,
     get: checkFirebaseDecorator(get),
     post: checkFirebaseDecorator(post),
     delete: checkFirebaseDecorator(del),
+
+    on: checkFirebaseDecorator(on),
   };
 }());
 
