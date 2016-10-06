@@ -50,10 +50,46 @@ const App = (function App() {
     Backbone.history.start();
   }
 
+  /**
+   * Connect collection to FireBase events.
+   * @param  {Backbone.Collection} context - Collection context
+   */
+  function liveCollection(context) {
+    const url = context.url;
+    if (!url) throw new Error('Collection url required');
+    Api.listenFBEvents.call(this, url);
+
+    context.listenTo(this, `${url}:child_added`, (change) => {
+      const child = change.val();
+
+      if (!context.get(change.key)) {
+        context.add({
+          name: change.key,
+          flag: child.flag,
+          playersName: child.playersName,
+          uid: child.uid,
+        });
+      }
+    });
+
+    context.listenTo(this, `${url}:child_changed`, (change) => {
+      console.log(`${url}:child_changed`, change.val());
+    });
+
+    context.listenTo(this, `${url}:child_removed`, (change) => {
+      context.remove(change.key);
+    });
+
+    context.listenTo(this, `${url}:child_moved`, (change) => {
+      console.log(`${url}:child_moved`, change.val());
+    });
+  }
+
   return {
     initialize,
     userModel,
     attach,
+    liveCollection,
     getRootNode: () => rootNode,
     setRootNode: newRootNode => (rootNode = newRootNode),
     getUserModel: () => userModel,
@@ -61,5 +97,7 @@ const App = (function App() {
     navigate: route => Backbone.history.navigate(route, true),
   };
 }());
+
+Object.assign(App, Backbone.Events);
 
 export default App;

@@ -1,25 +1,9 @@
 import PlayerModel from '../models/player';
-import Api from '../api';
+import App from '../app';
 
 class TeamCollection extends Backbone.Collection {
   initialize(models, options) {
-    Api.on(this.url, 'child_added', function(change) {
-      const child = change.val();
-
-      if (!this.get(change.key)) {
-        this.add({
-          name: change.key,
-          flag: child.flag,
-          playersName: child.playersName,
-          uid: child.uid,
-        });
-      }
-    }.bind(this));
-    Api.on(this.url, 'child_changed', (a) => console.log(a.val()));
-    Api.on(this.url, 'child_removed', function(change) {
-      this.remove(change.key);
-    }.bind(this));
-    Api.on(this.url, 'child_moved', (a) => console.log(a.val()));
+    App.liveCollection(this);
   }
 
   get matchDate() {

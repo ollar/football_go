@@ -1,3 +1,5 @@
+
+
 const Api = (function Api() {
   let firebase;
 
@@ -19,15 +21,33 @@ const Api = (function Api() {
 
   function checkFirebaseDecorator(fn) {
     return function apiMethod(...args) {
-      if (!firebase) throw new Error('firebase not inited');
+      if (!firebase) throw new Error('Firebase SDK not inited');
 
       return fn.call(this, ...args);
     };
   }
 
-  function on(url, eventName, fn) {
+  /**
+   * Attach to FireBase events
+   * @param  {String} url - url of FB entity
+   */
+  function listenFBEvents(url) {
     const ref = firebase.database().ref(url);
-    ref.on(eventName, fn);
+    ref.on('child_added', change =>
+      this.trigger(`${url}:child_added`, change)
+    );
+
+    ref.on('child_changed', change =>
+      this.trigger(`${url}:child_changed`, change)
+    );
+
+    ref.on('child_removed', change =>
+      this.trigger(`${url}:child_removed`, change)
+    );
+
+    ref.on('child_moved', change =>
+      this.trigger(`${url}:child_moved`, change)
+    );
   }
 
   return {
@@ -36,7 +56,7 @@ const Api = (function Api() {
     post: checkFirebaseDecorator(post),
     delete: checkFirebaseDecorator(del),
 
-    on: checkFirebaseDecorator(on),
+    listenFBEvents: checkFirebaseDecorator(listenFBEvents),
   };
 }());
 
