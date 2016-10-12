@@ -12,7 +12,12 @@ import footerComponent from './footer';
 
 import { serializeObject } from '../../utils';
 
+const teamCollection = new TeamCollection();
+
 class PlayersTable extends View {
+  get collection() {
+    return teamCollection;
+  }
   get template() {
     return h('div.play-team.center-wrapper', [
       titleComponent({
@@ -34,7 +39,6 @@ class PlayersTable extends View {
 
   initialize() {
     this.userModel = App.getUserModel();
-    this.collection = new TeamCollection();
     this.listenTo(this.collection, 'update', this.render);
     this.listenTo(this.userModel, 'change', this.render);
   }

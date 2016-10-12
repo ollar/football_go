@@ -8,9 +8,11 @@ class View {
   }
 
   constructor(...options) {
-    if (this.initialize) this.initialize.call(this, options);
     this.rootNode = App.getRootNode();
+    this.initialize.call(this, ...options);
   }
+
+  initialize() {}
 
   update() {
     const tree = this.template;
