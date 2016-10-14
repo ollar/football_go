@@ -7,12 +7,9 @@ class View {
     return h('div');
   }
 
-  constructor(...options) {
+  constructor() {
     this.rootNode = App.getRootNode();
-    this.initialize.call(this, ...options);
   }
-
-  initialize() {}
 
   update() {
     const tree = this.template;

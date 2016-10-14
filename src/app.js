@@ -47,7 +47,10 @@ const App = (function App() {
       }
     });
 
-    Backbone.history.start();
+    Backbone.history.start({
+      pushState: true,
+      root: '/app/',
+    });
   }
 
   /**

@@ -3,7 +3,7 @@ import App from '../app';
 
 class TeamCollection extends Backbone.Collection {
   initialize(models, options) {
-    setTimeout(() => App.liveCollection(this), 4);
+    App.liveCollection(this);
   }
 
   get matchDate() {
