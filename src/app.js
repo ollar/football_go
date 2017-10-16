@@ -9,7 +9,7 @@ const App = (function App() {
   const userModel = new Backbone.Model();
   let rootNode;
 
-  const template = h('div', 'test');
+  const template = h('div', 'loading');
   const appRouter = new AppRouter();
 
   function attach(el) {

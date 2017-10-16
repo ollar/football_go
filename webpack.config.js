@@ -13,8 +13,6 @@ const firebaseConnect = {
   messagingSenderId: process.env.FIREBASE_CONNECT_messagingSenderId,
 }
 
-console.log(firebaseConnect)
-
 module.exports = {
   entry: "./src/index.js",
   output: {
