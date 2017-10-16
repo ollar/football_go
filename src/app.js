@@ -19,15 +19,7 @@ const App = (function App() {
   }
 
   function initialize() {
-    const config = {
-      apiKey: 'AIzaSyAIbkLzp46HhDXBcMBmQiGXc6lbtWZ7l7s',
-      authDomain: 'footballgo-fcfc3.firebaseapp.com',
-      databaseURL: 'https://footballgo-fcfc3.firebaseio.com',
-      storageBucket: 'footballgo-fcfc3.appspot.com',
-      messagingSenderId: '421380806800',
-    };
-
-    firebase.initializeApp(config);
+    firebase.initializeApp(firebaseConnect);
     Api.initialize(firebase);
 
     firebase.auth().onAuthStateChanged((user) => {
@@ -47,10 +39,7 @@ const App = (function App() {
       }
     });
 
-    Backbone.history.start({
-      pushState: true,
-      root: '/app/',
-    });
+    Backbone.history.start();
   }
 
   /**

@@ -5,4 +5,5 @@ Our corporate Football meetings players list. Built on Backbone.js and Virtual-d
 ## Installation
 Common process:
 1. npm i
-2. gulp dev
+2. npm run dev
+3. npm run serve

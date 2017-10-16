@@ -8,25 +8,9 @@ var webpackConfig = require("./webpack.config.js");
 var plumber = require('gulp-plumber');
 var rename = require('gulp-rename');
 var sourcemaps = require('gulp-sourcemaps');
-var sass = require('gulp-sass');
 var autoPrefixer = require('gulp-autoprefixer');
 var cssnano = require('cssnano');
 var postcss = require('gulp-postcss');
-
-gulp.task('sass',function(){
-    gulp.src(['src/styles/main.scss'])
-        .pipe(plumber({
-            handleError: function (err) {
-                console.log(err);
-                this.emit('end');
-            }
-        }))
-        .pipe(sourcemaps.init())
-        .pipe(sass())
-        .pipe(autoPrefixer())
-        .pipe(sourcemaps.write())
-        .pipe(gulp.dest('public'))
-});
 
 gulp.task('post-css',function(){
     gulp.src(['src/styles/main.pcss'])
@@ -41,16 +25,6 @@ gulp.task('post-css',function(){
           require('postcss-nested'),
           require('postcss-import'),
           require('autoprefixer'),
-          require('doiuse')({
-            browsers: [
-              'ie >= 10',
-              '> 1%'
-            ],
-            ignoreFiles: ['**/_normalize.pcss'],
-            onFeatureUsage: function (usageInfo) {
-              console.log(usageInfo.message)
-            }
-          }),
           require('postcss-short'),
           cssnano,
         ]))

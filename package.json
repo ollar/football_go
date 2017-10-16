@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "./node_modules/.bin/gulp build-dev",
-    "prod": "./node_modules/.bin/gulp build"
+    "prod": "./node_modules/.bin/gulp build",
+    "serve": "cd public && ../node_modules/.bin/static-server"
   },
   "author": "",
   "license": "ISC",
@@ -21,9 +22,9 @@
   "devDependencies": {
     "babel-core": "^6.13.2",
     "babel-loader": "^6.2.5",
-    "babel-preset-es2015": "^6.13.2",
+    "babel-preset-env": "^1.6.0",
     "doiuse": "^2.5.0",
-    "es6-promise": "^3.2.1",
+    "dotenv": "^4.0.0",
     "eslint": "^3.5.0",
     "eslint-config-airbnb": "^11.1.0",
     "eslint-plugin-import": "^1.15.0",
@@ -44,8 +45,8 @@
     "postcss-nested": "^1.0.0",
     "postcss-short": "^2.0.0",
     "postcss-short-border-radius": "^1.0.0",
+    "static-server": "^2.0.5",
     "webpack": "^1.13.2",
-    "webpack-dev-server": "^1.15.0",
-    "whatwg-fetch": "^1.0.0"
+    "webpack-dev-server": "^1.15.0"
   }
 }
